@@ -19,7 +19,13 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.proyectomartini.ui.theme.*
 import com.example.proyectomartini.viewmodel.RegisterViewModel
-
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 @Composable
 fun RegisterScreen(
     onBackClick: () -> Unit = {},
@@ -46,7 +52,7 @@ fun RegisterScreen(
                 onClick = onBackClick
             ) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Volver",
                     tint = Blanco
                 )
@@ -278,42 +284,57 @@ fun RegisterScreen(
                 )
             }
 
-            if (state.registroExitoso) {
+            AnimatedVisibility(
+                visible = state.registroExitoso,
+                enter = fadeIn() + expandVertically(),
+                exit = fadeOut() + shrinkVertically()
+            ) {
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Column {
 
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor =
-                            VerdeBosque.copy(alpha = 0.12f)
+                    Spacer(
+                        modifier = Modifier.height(16.dp)
                     )
-                ) {
 
-                    Row(
-                        modifier = Modifier.padding(16.dp)
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = VerdeBosque.copy(alpha = 0.12f)
+                        ),
+                        shape = RoundedCornerShape(16.dp)
                     ) {
 
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = null,
-                            tint = VerdeBosque
-                        )
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
 
-                        Spacer(
-                            modifier = Modifier.width(10.dp)
-                        )
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = "Registro exitoso",
+                                tint = VerdeBosque
+                            )
 
-                        Text(
-                            text = "¡Registro completado correctamente!",
-                            color = VerdeBosque,
-                            fontWeight = FontWeight.Bold
-                        )
+                            Spacer(
+                                modifier = Modifier.width(10.dp)
+                            )
+
+                            Text(
+                                text = "¡Registro completado correctamente!",
+                                color = VerdeBosque,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(
+                modifier = Modifier.height(30.dp)
+            )
+
         }
     }
 }

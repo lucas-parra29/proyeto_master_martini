@@ -75,57 +75,55 @@ fun MartiniNavigation() {
         MartiniScreen.Favorites,
         MartiniScreen.Profile
     )
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
 
     Scaffold(
-
         bottomBar = {
 
-            NavigationBar {
+            if (currentRoute != MartiniScreen.Register.route) {
 
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                NavigationBar {
 
-                val currentRoute =
-                    navBackStackEntry?.destination?.route
+                    items.forEach { screen ->
 
-                items.forEach { screen ->
+                        NavigationBarItem(
+                            selected = currentRoute == screen.route,
 
-                    NavigationBarItem(
+                            onClick = {
 
-                        selected = currentRoute == screen.route,
+                                navController.navigate(screen.route) {
 
-                        onClick = {
+                                    popUpTo(
+                                        navController.graph
+                                            .findStartDestination()
+                                            .id
+                                    ) {
+                                        saveState = true
+                                    }
 
-                            navController.navigate(screen.route) {
-
-                                popUpTo(
-                                    navController.graph
-                                        .findStartDestination()
-                                        .id
-                                ) {
-                                    saveState = true
+                                    launchSingleTop = true
+                                    restoreState = true
                                 }
+                            },
 
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        },
+                            icon = {
+                                Icon(
+                                    imageVector = screen.icon,
+                                    contentDescription = screen.title
+                                )
+                            },
 
-                        icon = {
-                            Icon(
-                                imageVector = screen.icon,
-                                contentDescription = screen.title
+                            label = {
+                                Text(screen.title)
+                            },
+
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = VerdePino,
+                                selectedTextColor = VerdePino
                             )
-                        },
-
-                        label = {
-                            Text(screen.title)
-                        },
-
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = VerdePino,
-                            selectedTextColor = VerdePino
                         )
-                    )
+                    }
                 }
             }
         }

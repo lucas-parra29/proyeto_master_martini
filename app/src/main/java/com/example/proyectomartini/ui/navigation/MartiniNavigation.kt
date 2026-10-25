@@ -27,6 +27,7 @@ import com.example.proyectomartini.ui.theme.VerdePino
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import com.example.proyectomartini.ui.screens.RegisterScreen
+import com.example.proyectomartini.ui.screens.EditProfileScreen
 
 sealed class MartiniScreen(
     val route: String,
@@ -62,6 +63,11 @@ sealed class MartiniScreen(
         title = "Registro",
         icon = Icons.Default.Person
     )
+    object EditProfile : MartiniScreen(
+        route = "edit_profile",
+        title = "Editar perfil",
+        icon = Icons.Default.Person
+    )
 }
 
 @Composable
@@ -75,13 +81,17 @@ fun MartiniNavigation() {
         MartiniScreen.Favorites,
         MartiniScreen.Profile
     )
+
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
 
     Scaffold(
         bottomBar = {
 
-            if (currentRoute != MartiniScreen.Register.route) {
+            if (
+                currentRoute != MartiniScreen.Register.route &&
+                currentRoute != MartiniScreen.EditProfile.route
+            ) {
 
                 NavigationBar {
 
@@ -91,7 +101,6 @@ fun MartiniNavigation() {
                             selected = currentRoute == screen.route,
 
                             onClick = {
-
                                 navController.navigate(screen.route) {
 
                                     popUpTo(
@@ -172,6 +181,13 @@ fun MartiniNavigation() {
 
             composable(MartiniScreen.Register.route) {
                 RegisterScreen(
+                    onBackClick = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+            composable(MartiniScreen.EditProfile.route) {
+                EditProfileScreen(
                     onBackClick = {
                         navController.popBackStack()
                     }

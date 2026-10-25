@@ -16,6 +16,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.proyectomartini.ui.theme.*
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.proyectomartini.data.local.FavoritoEntity
+import com.example.proyectomartini.viewmodel.FavoritosViewModel
 
 data class ContenidoDemo(
     val titulo: String,
@@ -25,8 +32,9 @@ data class ContenidoDemo(
 )
 
 @Composable
-fun ExploreScreen() {
+fun ExploreScreen(favoritosViewModel: FavoritosViewModel = viewModel()) {
 
+    val favoritos by favoritosViewModel.titulosFavoritos.collectAsState()
     val contenidos = listOf(
         ContenidoDemo(
             "Torta Mousse de Chocolate y Avellanas",
@@ -213,13 +221,19 @@ fun ExploreScreen() {
                                 )
                             }
 
+                            val esFavorito = contenido.titulo in favoritos
+                            val colorCorazon by animateColorAsState(
+                                targetValue = if (esFavorito) RojoCaoba else GrisTexto,
+                                label = "colorFavorito"
+                            )
+
                             IconButton(
-                                onClick = {}
+                                onClick = { favoritosViewModel.alternar(contenido.toFavorito()) }
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.FavoriteBorder,
-                                    contentDescription = "Favorito",
-                                    tint = RojoCaoba
+                                    imageVector = if (esFavorito) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                    contentDescription = if (esFavorito) "Quitar de favoritos" else "Agregar a favoritos",
+                                    tint = colorCorazon
                                 )
                             }
                         }
@@ -229,3 +243,5 @@ fun ExploreScreen() {
         }
     }
 }
+private fun ContenidoDemo.toFavorito() =
+    FavoritoEntity(titulo = titulo, tipo = tipo, duracion = duracion, nivel = nivel)

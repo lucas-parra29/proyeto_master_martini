@@ -1,5 +1,7 @@
+
 package com.example.proyectomartini.ui.navigation
 
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
@@ -13,20 +15,20 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.proyectomartini.ui.screens.EditProfileScreen
 import com.example.proyectomartini.ui.screens.ExploreScreen
 import com.example.proyectomartini.ui.screens.FavoritesScreen
 import com.example.proyectomartini.ui.screens.HomeScreen
 import com.example.proyectomartini.ui.screens.ProfileScreen
-import com.example.proyectomartini.ui.theme.VerdePino
-import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.Modifier
 import com.example.proyectomartini.ui.screens.RegisterScreen
+import com.example.proyectomartini.ui.theme.VerdePino
 
 sealed class MartiniScreen(
     val route: String,
@@ -57,9 +59,16 @@ sealed class MartiniScreen(
         title = "Perfil",
         icon = Icons.Default.Person
     )
+
     object Register : MartiniScreen(
         route = "register",
         title = "Registro",
+        icon = Icons.Default.Person
+    )
+
+    object EditProfile : MartiniScreen(
+        route = "edit_profile",
+        title = "Editar perfil",
         icon = Icons.Default.Person
     )
 }
@@ -77,12 +86,12 @@ fun MartiniNavigation() {
     )
 
     Scaffold(
-
         bottomBar = {
 
             NavigationBar {
 
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
+                val navBackStackEntry by
+                navController.currentBackStackEntryAsState()
 
                 val currentRoute =
                     navBackStackEntry?.destination?.route
@@ -90,13 +99,10 @@ fun MartiniNavigation() {
                 items.forEach { screen ->
 
                     NavigationBarItem(
-
                         selected = currentRoute == screen.route,
 
                         onClick = {
-
                             navController.navigate(screen.route) {
-
                                 popUpTo(
                                     navController.graph
                                         .findStartDestination()
@@ -138,7 +144,6 @@ fun MartiniNavigation() {
         ) {
 
             composable(MartiniScreen.Home.route) {
-
                 HomeScreen(
                     onExploreClick = {
                         navController.navigate(
@@ -168,6 +173,20 @@ fun MartiniNavigation() {
                         navController.navigate(
                             MartiniScreen.Register.route
                         )
+                    },
+
+                    onEditProfileClick = {
+                        navController.navigate(
+                            MartiniScreen.EditProfile.route
+                        )
+                    }
+                )
+            }
+
+            composable(MartiniScreen.EditProfile.route) {
+                EditProfileScreen(
+                    onBackClick = {
+                        navController.popBackStack()
                     }
                 )
             }
@@ -182,4 +201,3 @@ fun MartiniNavigation() {
         }
     }
 }
-

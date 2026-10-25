@@ -14,7 +14,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -101,18 +100,18 @@ fun MartiniNavigation() {
                             selected = currentRoute == screen.route,
 
                             onClick = {
-                                navController.navigate(screen.route) {
 
-                                    popUpTo(
-                                        navController.graph
-                                            .findStartDestination()
-                                            .id
-                                    ) {
-                                        saveState = true
+                                if (currentRoute != screen.route) {
+
+                                    navController.navigate(screen.route) {
+
+                                        popUpTo(MartiniScreen.Home.route) {
+                                            saveState = true
+                                        }
+
+                                        launchSingleTop = true
+                                        restoreState = true
                                     }
-
-                                    launchSingleTop = true
-                                    restoreState = true
                                 }
                             },
 

@@ -24,7 +24,19 @@ data class RegisterUiState(
     val registroExitoso: Boolean = false
 )
 
-class RegisterViewModel : ViewModel() {
+class RegisterViewModel(
+    application: android.app.Application
+) : androidx.lifecycle.AndroidViewModel(application) {
+
+    private val authRepository =
+        com.example.proyectomartini.data.repository.AuthRepository(
+            application
+        )
+
+    private val profileRepository =
+        com.example.proyectomartini.data.repository.ProfileRepository(
+            application
+        )
 
     private val _uiState = MutableStateFlow(RegisterUiState())
 
@@ -152,6 +164,24 @@ class RegisterViewModel : ViewModel() {
                     negocioError != null ||
                     passwordError != null ||
                     confirmarError != null
+
+        if (!hayErrores) {
+
+            authRepository.registrarUsuario(
+                nombre = estado.nombre,
+                correo = estado.correo,
+                password = estado.password
+            )
+
+            profileRepository.guardarPerfil(
+                com.example.proyectomartini.data.repository.UserProfile(
+                    nombre = estado.nombre,
+                    correo = estado.correo,
+                    telefono = estado.telefono,
+                    tipoNegocio = estado.tipoNegocio
+                )
+            )
+        }
 
         _uiState.update {
             it.copy(

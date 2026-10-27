@@ -27,12 +27,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import com.example.proyectomartini.ui.screens.RegisterScreen
 import com.example.proyectomartini.ui.screens.EditProfileScreen
+import com.example.proyectomartini.ui.screens.LoginScreen
 
 sealed class MartiniScreen(
     val route: String,
     val title: String,
     val icon: ImageVector
 ) {
+    object Login : MartiniScreen(
+        route = "login",
+        title = "Iniciar sesión",
+        icon = Icons.Default.Person
+    )
 
     object Home : MartiniScreen(
         route = "home",
@@ -88,6 +94,7 @@ fun MartiniNavigation() {
         bottomBar = {
 
             if (
+                currentRoute != MartiniScreen.Login.route &&
                 currentRoute != MartiniScreen.Register.route &&
                 currentRoute != MartiniScreen.EditProfile.route
             ) {
@@ -139,9 +146,36 @@ fun MartiniNavigation() {
 
         NavHost(
             navController = navController,
-            startDestination = MartiniScreen.Home.route,
+            startDestination = MartiniScreen.Login.route,
             modifier = Modifier.padding(innerPadding)
         ) {
+
+            composable(MartiniScreen.Login.route) {
+
+                LoginScreen(
+
+                    onLoginSuccess = {
+
+                        navController.navigate(
+                            MartiniScreen.Home.route
+                        ) {
+
+                            popUpTo(MartiniScreen.Login.route) {
+                                inclusive = true
+                            }
+
+                            launchSingleTop = true
+                        }
+                    },
+
+                    onRegisterClick = {
+
+                        navController.navigate(
+                            MartiniScreen.Register.route
+                        )
+                    }
+                )
+            }
 
             composable(MartiniScreen.Home.route) {
 
@@ -169,19 +203,49 @@ fun MartiniNavigation() {
             }
 
             composable(MartiniScreen.Profile.route) {
+
                 ProfileScreen(
-                    onRegisterClick = {
+
+                    onEditProfileClick = {
                         navController.navigate(
-                            MartiniScreen.Register.route
+                            MartiniScreen.EditProfile.route
                         )
+                    },
+
+                    onLogoutClick = {
+                        navController.navigate(
+                            MartiniScreen.Login.route
+                        ) {
+                            popUpTo(MartiniScreen.Home.route) {
+                                inclusive = true
+                            }
+
+                            launchSingleTop = true
+                        }
                     }
                 )
             }
 
             composable(MartiniScreen.Register.route) {
+
                 RegisterScreen(
+
                     onBackClick = {
                         navController.popBackStack()
+                    },
+
+                    onLoginClick = {
+
+                        navController.navigate(
+                            MartiniScreen.Login.route
+                        ) {
+
+                            popUpTo(MartiniScreen.Register.route) {
+                                inclusive = true
+                            }
+
+                            launchSingleTop = true
+                        }
                     }
                 )
             }

@@ -1,4 +1,3 @@
-
 package com.example.proyectomartini.ui.screens
 
 import android.graphics.BitmapFactory
@@ -30,9 +29,10 @@ import com.example.proyectomartini.ui.theme.*
 
 @Composable
 fun ProfileScreen(
-    onRegisterClick: () -> Unit = {},
-    onEditProfileClick: () -> Unit = {}
+    onEditProfileClick: () -> Unit = {},
+    onLogoutClick: () -> Unit = {}
 ) {
+
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -49,7 +49,9 @@ fun ProfileScreen(
     }
 
     DisposableEffect(lifecycleOwner) {
+
         val observer = LifecycleEventObserver { _, evento ->
+
             if (evento == Lifecycle.Event.ON_RESUME) {
                 perfil = repository.obtenerPerfil()
                 actualizacion++
@@ -63,14 +65,23 @@ fun ProfileScreen(
         }
     }
 
-    val foto = remember(perfil.foto, actualizacion) {
+    val foto = remember(
+        perfil.foto,
+        actualizacion
+    ) {
+
         if (perfil.foto.isNotEmpty()) {
+
             try {
-                BitmapFactory.decodeFile(perfil.foto)
+
+                BitmapFactory
+                    .decodeFile(perfil.foto)
                     ?.asImageBitmap()
+
             } catch (e: Exception) {
                 null
             }
+
         } else {
             null
         }
@@ -83,12 +94,14 @@ fun ProfileScreen(
             .verticalScroll(rememberScrollState())
     ) {
 
+        // Encabezado
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(VerdePino)
                 .padding(24.dp)
         ) {
+
             Text(
                 text = "Mi perfil",
                 color = Blanco,
@@ -101,6 +114,7 @@ fun ProfileScreen(
             modifier = Modifier.padding(24.dp)
         ) {
 
+            // Información principal del usuario
             Row(
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -110,7 +124,9 @@ fun ProfileScreen(
                     shape = CircleShape,
                     color = GrisSuave
                 ) {
+
                     if (foto != null) {
+
                         Image(
                             bitmap = foto,
                             contentDescription = "Foto de perfil",
@@ -119,7 +135,9 @@ fun ProfileScreen(
                                 .fillMaxSize()
                                 .clip(CircleShape)
                         )
+
                     } else {
+
                         Icon(
                             imageVector = Icons.Default.Person,
                             contentDescription = "Perfil sin fotografía",
@@ -129,7 +147,9 @@ fun ProfileScreen(
                     }
                 }
 
-                Spacer(modifier = Modifier.width(18.dp))
+                Spacer(
+                    modifier = Modifier.width(18.dp)
+                )
 
                 Column(
                     modifier = Modifier.weight(1f)
@@ -151,22 +171,30 @@ fun ProfileScreen(
                         color = GrisTexto
                     )
 
-                    TextButton(
-                        onClick = onRegisterClick
-                    ) {
-                        Text("Crear cuenta")
-                    }
+                    Spacer(
+                        modifier = Modifier.height(10.dp)
+                    )
 
                     OutlinedButton(
-                        onClick = onEditProfileClick
+                        onClick = onEditProfileClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp)
                     ) {
-                        Text("Editar perfil")
+
+                        Text(
+                            text = "Editar perfil",
+                            color = VerdePino,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(
+                modifier = Modifier.height(28.dp)
+            )
 
+            // Intereses
             Text(
                 text = "Mis intereses",
                 fontSize = 20.sp,
@@ -174,14 +202,19 @@ fun ProfileScreen(
                 color = VerdePino
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(
+                modifier = Modifier.height(14.dp)
+            )
 
             if (perfil.intereses.isBlank()) {
+
                 Text(
                     text = "Aún no has registrado intereses",
                     color = GrisTexto
                 )
+
             } else {
+
                 Text(
                     text = perfil.intereses,
                     color = VerdePino,
@@ -189,8 +222,11 @@ fun ProfileScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(
+                modifier = Modifier.height(28.dp)
+            )
 
+            // Información de contacto
             Text(
                 text = "Información de contacto",
                 fontSize = 20.sp,
@@ -198,7 +234,9 @@ fun ProfileScreen(
                 color = VerdePino
             )
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(
+                modifier = Modifier.height(14.dp)
+            )
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -207,10 +245,12 @@ fun ProfileScreen(
                     containerColor = Blanco
                 )
             ) {
+
                 Column(
                     modifier = Modifier.padding(20.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+
                     Text(
                         text = "Correo electrónico",
                         fontWeight = FontWeight.Bold,
@@ -241,8 +281,11 @@ fun ProfileScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(28.dp))
+            Spacer(
+                modifier = Modifier.height(28.dp)
+            )
 
+            // Favoritos
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(18.dp),
@@ -250,9 +293,11 @@ fun ProfileScreen(
                     containerColor = Blanco
                 )
             ) {
+
                 Column(
                     modifier = Modifier.padding(20.dp)
                 ) {
+
                     Text(
                         text = "12",
                         fontSize = 26.sp,
@@ -267,7 +312,35 @@ fun ProfileScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(
+                modifier = Modifier.height(28.dp)
+            )
+
+            HorizontalDivider()
+
+            Spacer(
+                modifier = Modifier.height(20.dp)
+            )
+
+            // Cerrar sesión
+            OutlinedButton(
+                onClick = onLogoutClick,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+
+                Text(
+                    text = "Cerrar sesión",
+                    color = RojoCaoba,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(
+                modifier = Modifier.height(24.dp)
+            )
         }
     }
 }

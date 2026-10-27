@@ -323,13 +323,26 @@ fun EditProfileScreen(
             }
 
             if (estado.guardadoExitoso) {
-                Spacer(modifier = Modifier.height(16.dp))
 
-                Text(
-                    text = "Perfil actualizado correctamente",
-                    color = VerdeMartini,
-                    fontWeight = FontWeight.Medium
+                Spacer(
+                    modifier = Modifier.height(16.dp)
                 )
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color(0xFFE3F2E8)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+
+                    Text(
+                        text = " Perfil actualizado correctamente",
+                        color = VerdeMartini,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(16.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(28.dp))

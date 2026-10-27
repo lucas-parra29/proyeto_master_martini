@@ -29,6 +29,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 @Composable
 fun RegisterScreen(
     onBackClick: () -> Unit = {},
+    onLoginClick: () -> Unit = {},
     registerViewModel: RegisterViewModel = viewModel()
 ) {
 
@@ -304,6 +305,7 @@ fun RegisterScreen(
                         shape = RoundedCornerShape(16.dp)
                     ) {
 
+
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -327,6 +329,23 @@ fun RegisterScreen(
                                 fontWeight = FontWeight.Bold
                             )
                         }
+                    }
+                    Spacer(
+                        modifier = Modifier.height(12.dp)
+                    )
+
+                    Button(
+                        onClick = onLoginClick,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = VerdePino
+                        )
+                    ) {
+                        Text(
+                            text = "Ir a iniciar sesión",
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             }

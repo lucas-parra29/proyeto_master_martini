@@ -59,5 +59,6 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    implementation("androidx.browser:browser:1.9.0")
     ksp(libs.androidx.room.compiler)
 }

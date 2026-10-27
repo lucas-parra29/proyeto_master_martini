@@ -1,16 +1,9 @@
+
 package com.example.proyectomartini.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -22,12 +15,7 @@ import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,7 +25,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.Image
 import com.example.proyectomartini.R
 import com.example.proyectomartini.ui.theme.*
 
@@ -51,33 +38,35 @@ data class HomeOption(
 @Composable
 fun HomeScreen(
     onExploreClick: () -> Unit = {},
-    onFavoritesClick: () -> Unit = {}
+    onFavoritesClick: () -> Unit = {},
+    onRecipesClick: () -> Unit = {},
+    onVideosClick: () -> Unit = {},
+    onCoursesClick: () -> Unit = {}
 ) {
-
     val options = listOf(
         HomeOption(
-            title = "Recetas",
-            subtitle = "Ideas para cada ocasión",
-            icon = Icons.Default.Menu,
-            color = VerdePino
+            "Recetas",
+            "Ideas para cada ocasión",
+            Icons.Default.Menu,
+            VerdePino
         ),
         HomeOption(
-            title = "Videos",
-            subtitle = "Técnicas y consejos",
-            icon = Icons.Default.PlayArrow,
-            color = BronceDorado
+            "Videos",
+            "Técnicas y consejos",
+            Icons.Default.PlayArrow,
+            BronceDorado
         ),
         HomeOption(
-            title = "Cursos",
-            subtitle = "Aprende con expertos",
-            icon = Icons.Default.Star,
-            color = VerdeBosque
+            "Cursos",
+            "Aprende con expertos",
+            Icons.Default.Star,
+            VerdeBosque
         ),
         HomeOption(
-            title = "Favoritos",
-            subtitle = "Tu contenido guardado",
-            icon = Icons.Default.Favorite,
-            color = RojoCaoba
+            "Favoritos",
+            "Tu contenido guardado",
+            Icons.Default.Favorite,
+            RojoCaoba
         )
     )
 
@@ -87,12 +76,10 @@ fun HomeScreen(
             .background(NieveBrillante)
             .padding(20.dp)
     ) {
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
             Image(
                 painter = painterResource(
                     id = R.drawable.master_martini_logo
@@ -103,24 +90,18 @@ fun HomeScreen(
                     .height(80.dp)
             )
 
-            Spacer(
-                modifier = Modifier.weight(1f)
-            )
+            Spacer(Modifier.weight(1f))
 
-            IconButton(
-                onClick = { }
-            ) {
+            IconButton(onClick = {}) {
                 Icon(
-                    imageVector = Icons.Default.Notifications,
+                    Icons.Default.Notifications,
                     contentDescription = "Notificaciones",
                     tint = VerdePino
                 )
             }
         }
 
-        Spacer(
-            modifier = Modifier.height(12.dp)
-        )
+        Spacer(Modifier.height(12.dp))
 
         Text(
             text = "¡Hola, chef!",
@@ -135,30 +116,26 @@ fun HomeScreen(
             color = GrisTexto
         )
 
-        Spacer(
-            modifier = Modifier.height(20.dp)
-        )
+        Spacer(Modifier.height(20.dp))
 
         OutlinedTextField(
             value = "",
             onValueChange = {},
             modifier = Modifier.fillMaxWidth(),
+            readOnly = true,
             placeholder = {
                 Text("Buscar recetas, técnicas o cursos...")
             },
             leadingIcon = {
                 Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = null
+                    Icons.Default.Search,
+                    contentDescription = "Buscar"
                 )
             },
-            readOnly = true,
             shape = RoundedCornerShape(24.dp)
         )
 
-        Spacer(
-            modifier = Modifier.height(24.dp)
-        )
+        Spacer(Modifier.height(24.dp))
 
         Text(
             text = "Explora Master Martini",
@@ -167,9 +144,7 @@ fun HomeScreen(
             color = VerdePino
         )
 
-        Spacer(
-            modifier = Modifier.height(14.dp)
-        )
+        Spacer(Modifier.height(14.dp))
 
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
@@ -177,9 +152,7 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-
             items(options) { option ->
-
                 Card(
                     modifier = Modifier.height(145.dp),
                     colors = CardDefaults.cardColors(
@@ -187,25 +160,21 @@ fun HomeScreen(
                     ),
                     shape = RoundedCornerShape(20.dp),
                     onClick = {
-
                         when (option.title) {
-
-                            "Recetas",
-                            "Videos",
-                            "Cursos" -> onExploreClick()
-
+                            "Recetas" -> onRecipesClick()
+                            "Videos" -> onVideosClick()
+                            "Cursos" -> onCoursesClick()
                             "Favoritos" -> onFavoritesClick()
                         }
                     }
                 ) {
-
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(16.dp),
-                        verticalArrangement = Arrangement.SpaceBetween
+                        verticalArrangement =
+                            Arrangement.SpaceBetween
                     ) {
-
                         Icon(
                             imageVector = option.icon,
                             contentDescription = option.title,
@@ -214,7 +183,6 @@ fun HomeScreen(
                         )
 
                         Column {
-
                             Text(
                                 text = option.title,
                                 color = Color.White,
@@ -224,7 +192,9 @@ fun HomeScreen(
 
                             Text(
                                 text = option.subtitle,
-                                color = Color.White.copy(alpha = 0.85f),
+                                color = Color.White.copy(
+                                    alpha = 0.85f
+                                ),
                                 fontSize = 12.sp
                             )
                         }
@@ -233,22 +203,19 @@ fun HomeScreen(
             }
         }
 
-        Spacer(
-            modifier = Modifier.height(14.dp)
-        )
+        Spacer(Modifier.height(14.dp))
 
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(
                 containerColor = Color.White
             ),
-            shape = RoundedCornerShape(20.dp)
+            shape = RoundedCornerShape(20.dp),
+            onClick = onExploreClick
         ) {
-
             Column(
                 modifier = Modifier.padding(18.dp)
             ) {
-
                 Text(
                     text = "Ingredientes que inspiran",
                     fontSize = 19.sp,

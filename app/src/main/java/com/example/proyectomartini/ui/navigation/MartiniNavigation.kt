@@ -1,5 +1,8 @@
+
 package com.example.proyectomartini.ui.navigation
 
+import android.net.Uri
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
@@ -13,21 +16,23 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.proyectomartini.ui.screens.CoursesScreen
+import com.example.proyectomartini.ui.screens.EditProfileScreen
 import com.example.proyectomartini.ui.screens.ExploreScreen
 import com.example.proyectomartini.ui.screens.FavoritesScreen
 import com.example.proyectomartini.ui.screens.HomeScreen
-import com.example.proyectomartini.ui.screens.ProfileScreen
-import com.example.proyectomartini.ui.theme.VerdePino
-import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.Modifier
-import com.example.proyectomartini.ui.screens.RegisterScreen
-import com.example.proyectomartini.ui.screens.EditProfileScreen
 import com.example.proyectomartini.ui.screens.LoginScreen
+import com.example.proyectomartini.ui.screens.ProfileScreen
+import com.example.proyectomartini.ui.screens.RecipeDetailScreen
+import com.example.proyectomartini.ui.screens.RegisterScreen
+import com.example.proyectomartini.ui.screens.VideoPlayerScreen
+import com.example.proyectomartini.ui.theme.VerdePino
 
 sealed class MartiniScreen(
     val route: String,
@@ -35,49 +40,50 @@ sealed class MartiniScreen(
     val icon: ImageVector
 ) {
     object Login : MartiniScreen(
-        route = "login",
-        title = "Iniciar sesión",
-        icon = Icons.Default.Person
+        "login",
+        "Iniciar sesión",
+        Icons.Default.Person
     )
 
     object Home : MartiniScreen(
-        route = "home",
-        title = "Inicio",
-        icon = Icons.Default.Home
+        "home",
+        "Inicio",
+        Icons.Default.Home
     )
 
     object Explore : MartiniScreen(
-        route = "explore",
-        title = "Explorar",
-        icon = Icons.Default.Search
+        "explore",
+        "Explorar",
+        Icons.Default.Search
     )
 
     object Favorites : MartiniScreen(
-        route = "favorites",
-        title = "Favoritos",
-        icon = Icons.Default.Favorite
+        "favorites",
+        "Favoritos",
+        Icons.Default.Favorite
     )
 
     object Profile : MartiniScreen(
-        route = "profile",
-        title = "Perfil",
-        icon = Icons.Default.Person
+        "profile",
+        "Perfil",
+        Icons.Default.Person
     )
+
     object Register : MartiniScreen(
-        route = "register",
-        title = "Registro",
-        icon = Icons.Default.Person
+        "register",
+        "Registro",
+        Icons.Default.Person
     )
+
     object EditProfile : MartiniScreen(
-        route = "edit_profile",
-        title = "Editar perfil",
-        icon = Icons.Default.Person
+        "edit_profile",
+        "Editar perfil",
+        Icons.Default.Person
     )
 }
 
 @Composable
 fun MartiniNavigation() {
-
     val navController = rememberNavController()
 
     val items = listOf(
@@ -87,35 +93,38 @@ fun MartiniNavigation() {
         MartiniScreen.Profile
     )
 
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val navBackStackEntry by
+    navController.currentBackStackEntryAsState()
+
     val currentRoute = navBackStackEntry?.destination?.route
+
+    val ocultarBarra = currentRoute in listOf(
+        MartiniScreen.Login.route,
+        MartiniScreen.Register.route,
+        MartiniScreen.EditProfile.route,
+        "courses",
+        "video/{videoId}/{titulo}",
+        "receta/{recetaId}"
+    )
 
     Scaffold(
         bottomBar = {
-
-            if (
-                currentRoute != MartiniScreen.Login.route &&
-                currentRoute != MartiniScreen.Register.route &&
-                currentRoute != MartiniScreen.EditProfile.route
-            ) {
-
+            if (!ocultarBarra) {
                 NavigationBar {
-
                     items.forEach { screen ->
-
                         NavigationBarItem(
-                            selected = currentRoute == screen.route,
+                            selected = currentRoute == screen.route ||
+                                    (
+                                            screen.route == MartiniScreen.Explore.route &&
+                                                    currentRoute == "explore/{tipo}"
+                                            ),
 
                             onClick = {
-
                                 if (currentRoute != screen.route) {
-
                                     navController.navigate(screen.route) {
-
                                         popUpTo(MartiniScreen.Home.route) {
                                             saveState = true
                                         }
-
                                         launchSingleTop = true
                                         restoreState = true
                                     }
@@ -124,7 +133,7 @@ fun MartiniNavigation() {
 
                             icon = {
                                 Icon(
-                                    imageVector = screen.icon,
+                                    screen.icon,
                                     contentDescription = screen.title
                                 )
                             },
@@ -143,7 +152,6 @@ fun MartiniNavigation() {
             }
         }
     ) { innerPadding ->
-
         NavHost(
             navController = navController,
             startDestination = MartiniScreen.Login.route,
@@ -151,25 +159,19 @@ fun MartiniNavigation() {
         ) {
 
             composable(MartiniScreen.Login.route) {
-
                 LoginScreen(
-
                     onLoginSuccess = {
-
                         navController.navigate(
                             MartiniScreen.Home.route
                         ) {
-
                             popUpTo(MartiniScreen.Login.route) {
                                 inclusive = true
                             }
-
                             launchSingleTop = true
                         }
                     },
 
                     onRegisterClick = {
-
                         navController.navigate(
                             MartiniScreen.Register.route
                         )
@@ -178,12 +180,23 @@ fun MartiniNavigation() {
             }
 
             composable(MartiniScreen.Home.route) {
-
                 HomeScreen(
                     onExploreClick = {
                         navController.navigate(
                             MartiniScreen.Explore.route
                         )
+                    },
+
+                    onRecipesClick = {
+                        navController.navigate("explore/RECETA")
+                    },
+
+                    onVideosClick = {
+                        navController.navigate("explore/VIDEO")
+                    },
+
+                    onCoursesClick = {
+                        navController.navigate("courses")
                     },
 
                     onFavoritesClick = {
@@ -195,17 +208,90 @@ fun MartiniNavigation() {
             }
 
             composable(MartiniScreen.Explore.route) {
-                ExploreScreen()
+                ExploreScreen(
+                    tipoInicial = "Todas",
+
+                    onVideoClick = { videoId, titulo ->
+                        navController.navigate(
+                            "video/$videoId/${Uri.encode(titulo)}"
+                        )
+                    },
+
+                    onRecetaClick = { recetaId ->
+                        navController.navigate(
+                            "receta/$recetaId"
+                        )
+                    }
+                )
             }
+
+            composable("explore/{tipo}") { backStackEntry ->
+                val tipo = backStackEntry.arguments
+                    ?.getString("tipo") ?: "Todas"
+
+                ExploreScreen(
+                    tipoInicial = tipo,
+
+                    onVideoClick = { videoId, titulo ->
+                        navController.navigate(
+                            "video/$videoId/${Uri.encode(titulo)}"
+                        )
+                    },
+
+                    onRecetaClick = { recetaId ->
+                        navController.navigate(
+                            "receta/$recetaId"
+                        )
+                    }
+                )
+            }
+
+            composable("courses") {
+                CoursesScreen(
+                    onBackClick = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+
+            composable("video/{videoId}/{titulo}") { backStackEntry ->
+                val videoId = backStackEntry.arguments
+                    ?.getString("videoId") ?: ""
+
+                val titulo = backStackEntry.arguments
+                    ?.getString("titulo") ?: "Video"
+
+                VideoPlayerScreen(
+                    videoId = videoId,
+                    titulo = titulo,
+                    onBackClick = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
+
+            composable("receta/{recetaId}") { backStackEntry ->
+                val recetaId = backStackEntry.arguments
+                    ?.getString("recetaId") ?: ""
+
+                RecipeDetailScreen(
+                    recetaId = recetaId,
+                    onBackClick = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+
 
             composable(MartiniScreen.Favorites.route) {
                 FavoritesScreen()
             }
 
+
             composable(MartiniScreen.Profile.route) {
-
                 ProfileScreen(
-
                     onEditProfileClick = {
                         navController.navigate(
                             MartiniScreen.EditProfile.route
@@ -219,36 +305,33 @@ fun MartiniNavigation() {
                             popUpTo(MartiniScreen.Home.route) {
                                 inclusive = true
                             }
-
                             launchSingleTop = true
                         }
                     }
                 )
             }
 
+
             composable(MartiniScreen.Register.route) {
-
                 RegisterScreen(
-
                     onBackClick = {
                         navController.popBackStack()
                     },
 
                     onLoginClick = {
-
                         navController.navigate(
                             MartiniScreen.Login.route
                         ) {
-
                             popUpTo(MartiniScreen.Register.route) {
                                 inclusive = true
                             }
-
                             launchSingleTop = true
                         }
                     }
                 )
             }
+
+
             composable(MartiniScreen.EditProfile.route) {
                 EditProfileScreen(
                     onBackClick = {
@@ -259,4 +342,3 @@ fun MartiniNavigation() {
         }
     }
 }
-

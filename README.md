@@ -35,6 +35,6 @@ Kotlin, Jetpack Compose, Room, Navigation Compose.
 Correo `demo@martini.cl` / contraseña `martini123` (datos ficticios).
 
 ## Cómo ejecutar
-1. git clone https://github.com/lucas-parra29/proyecto_master_martini.git
+1. git clone https://github.com/lucas-parra29/proyeto_master_martini
 2. Abrir en Android Studio y esperar el sync de Gradle.
 3. Ejecutar en un emulador o dispositivo con Android 7.0 (API 24) o superior y conexión a internet (para los videos).

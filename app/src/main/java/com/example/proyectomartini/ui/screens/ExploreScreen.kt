@@ -1,4 +1,3 @@
-
 package com.example.proyectomartini.ui.screens
 
 import android.content.Intent
@@ -17,6 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.PlayArrow
@@ -362,7 +362,8 @@ fun ExploreScreen(
     favoritosViewModel: FavoritosViewModel = viewModel(),
     onVideoClick: (String, String) -> Unit = { _, _ -> },
     onRecetaClick: (String) -> Unit = {},
-    tipoInicial: String = "Todas"
+    tipoInicial: String = "Todas",
+    onInicioClick: () -> Unit = {}
 ) {
     val context = LocalContext.current
 
@@ -411,6 +412,18 @@ fun ExploreScreen(
                 .background(VerdePino)
                 .padding(20.dp)
         ) {
+            if (tipoInicial != "Todas") {
+                TextButton(onClick = onInicioClick) {
+                    Icon(
+                        imageVector = Icons.Default.ArrowBack,
+                        contentDescription = null,
+                        tint = Blanco
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text("Volver a Inicio", color = Blanco)
+                }
+            }
+
             Text(
                 text = tituloPantalla,
                 color = Blanco,
@@ -680,3 +693,4 @@ fun ExploreScreen(
         }
     }
 }
+

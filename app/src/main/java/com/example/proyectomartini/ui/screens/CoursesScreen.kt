@@ -1,5 +1,6 @@
 package com.example.proyectomartini.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -110,6 +111,18 @@ fun CoursesScreen(
         mutableStateOf<LeccionMartini?>(null)
     }
 
+    fun volver() {
+        when {
+            leccionSeleccionada != null -> leccionSeleccionada = null
+            cursoSeleccionado != null -> cursoSeleccionado = null
+            else -> onBackClick()
+        }
+    }
+
+    BackHandler {
+        volver()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -121,26 +134,21 @@ fun CoursesScreen(
                 .background(VerdePino)
                 .padding(16.dp)
         ) {
-            TextButton(
-                onClick = {
-                    when {
-                        leccionSeleccionada != null ->
-                            leccionSeleccionada = null
-
-                        cursoSeleccionado != null ->
-                            cursoSeleccionado = null
-
-                        else -> onBackClick()
-                    }
-                }
-            ) {
+            TextButton(onClick = { volver() }) {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = null,
                     tint = Color.White
                 )
                 Spacer(Modifier.width(8.dp))
-                Text("Volver", color = Color.White)
+                Text(
+                    text = when {
+                        leccionSeleccionada != null -> "Volver al curso"
+                        cursoSeleccionado != null -> "Volver a Cursos"
+                        else -> "Volver a Inicio"
+                    },
+                    color = Color.White
+                )
             }
 
             Text(

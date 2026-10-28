@@ -1,4 +1,3 @@
-
 package com.example.proyectomartini.ui.navigation
 
 import android.net.Uri
@@ -98,6 +97,17 @@ fun MartiniNavigation() {
 
     val currentRoute = navBackStackEntry?.destination?.route
 
+    // Regresa a la pantalla Inicio sin acumular copias en el historial.
+    fun volverAInicio() {
+        navController.navigate(MartiniScreen.Home.route) {
+            popUpTo(MartiniScreen.Home.route) {
+                inclusive = false
+            }
+            launchSingleTop = true
+            restoreState = false
+        }
+    }
+
     val ocultarBarra = currentRoute in listOf(
         MartiniScreen.Login.route,
         MartiniScreen.Register.route,
@@ -120,7 +130,9 @@ fun MartiniNavigation() {
                                             ),
 
                             onClick = {
-                                if (currentRoute != screen.route) {
+                                if (screen.route == MartiniScreen.Home.route) {
+                                    volverAInicio()
+                                } else if (currentRoute != screen.route) {
                                     navController.navigate(screen.route) {
                                         popUpTo(MartiniScreen.Home.route) {
                                             saveState = true
@@ -211,6 +223,8 @@ fun MartiniNavigation() {
                 ExploreScreen(
                     tipoInicial = "Todas",
 
+                    onInicioClick = { volverAInicio() },
+
                     onVideoClick = { videoId, titulo ->
                         navController.navigate(
                             "video/$videoId/${Uri.encode(titulo)}"
@@ -232,6 +246,8 @@ fun MartiniNavigation() {
                 ExploreScreen(
                     tipoInicial = tipo,
 
+                    onInicioClick = { volverAInicio() },
+
                     onVideoClick = { videoId, titulo ->
                         navController.navigate(
                             "video/$videoId/${Uri.encode(titulo)}"
@@ -248,9 +264,7 @@ fun MartiniNavigation() {
 
             composable("courses") {
                 CoursesScreen(
-                    onBackClick = {
-                        navController.popBackStack()
-                    }
+                    onBackClick = { volverAInicio() }
                 )
             }
 

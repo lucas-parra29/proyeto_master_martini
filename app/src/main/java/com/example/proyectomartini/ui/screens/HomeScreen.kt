@@ -41,7 +41,8 @@ fun HomeScreen(
     onFavoritesClick: () -> Unit = {},
     onRecipesClick: () -> Unit = {},
     onVideosClick: () -> Unit = {},
-    onCoursesClick: () -> Unit = {}
+    onCoursesClick: () -> Unit = {},
+    onNotificationsClick: () -> Unit = {}
 ) {
     val options = listOf(
         HomeOption(
@@ -92,7 +93,9 @@ fun HomeScreen(
 
             Spacer(Modifier.weight(1f))
 
-            IconButton(onClick = {}) {
+            IconButton(
+                onClick = onNotificationsClick
+            ) {
                 Icon(
                     Icons.Default.Notifications,
                     contentDescription = "Notificaciones",

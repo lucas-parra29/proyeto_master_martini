@@ -32,6 +32,8 @@ import com.example.proyectomartini.ui.screens.RecipeDetailScreen
 import com.example.proyectomartini.ui.screens.RegisterScreen
 import com.example.proyectomartini.ui.screens.VideoPlayerScreen
 import com.example.proyectomartini.ui.theme.VerdePino
+import androidx.compose.material.icons.filled.Notifications
+import com.example.proyectomartini.ui.screens.NotificationsScreen
 
 sealed class MartiniScreen(
     val route: String,
@@ -79,6 +81,11 @@ sealed class MartiniScreen(
         "Editar perfil",
         Icons.Default.Person
     )
+    object Notifications : MartiniScreen(
+        "notifications",
+        "Notificaciones",
+        Icons.Default.Notifications
+    )
 }
 
 @Composable
@@ -112,6 +119,7 @@ fun MartiniNavigation() {
         MartiniScreen.Login.route,
         MartiniScreen.Register.route,
         MartiniScreen.EditProfile.route,
+        MartiniScreen.Notifications.route,
         "courses",
         "video/{videoId}/{titulo}",
         "receta/{recetaId}"
@@ -215,6 +223,22 @@ fun MartiniNavigation() {
                         navController.navigate(
                             MartiniScreen.Favorites.route
                         )
+                    },
+                    onNotificationsClick = {
+                        navController.navigate(
+                            MartiniScreen.Notifications.route
+                        )
+                    }
+                )
+            }
+
+            composable(
+                MartiniScreen.Notifications.route
+            ) {
+
+                NotificationsScreen(
+                    onBackClick = {
+                        navController.popBackStack()
                     }
                 )
             }

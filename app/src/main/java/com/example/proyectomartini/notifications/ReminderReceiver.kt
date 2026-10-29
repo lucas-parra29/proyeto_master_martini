@@ -12,6 +12,7 @@ import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import android.app.PendingIntent
 
 class ReminderReceiver : BroadcastReceiver() {
 
@@ -49,16 +50,45 @@ class ReminderReceiver : BroadcastReceiver() {
         val mensaje = intent.getStringExtra("mensaje")
             ?: "Tienes nuevos contenidos disponibles"
 
-        val notificacion = NotificationCompat.Builder(
-            context,
-            canalId
-        )
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
-            .setContentTitle(titulo)
-            .setContentText(mensaje)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setAutoCancel(true)
-            .build()
+        val abrirAppIntent =
+            context.packageManager
+                .getLaunchIntentForPackage(
+                    context.packageName
+                )
+
+        val abrirAppPendingIntent =
+            abrirAppIntent?.let { intentApp ->
+
+                PendingIntent.getActivity(
+                    context,
+                    2001,
+                    intentApp,
+                    PendingIntent.FLAG_UPDATE_CURRENT or
+                            PendingIntent.FLAG_IMMUTABLE
+                )
+            }
+
+        val builder =
+            NotificationCompat.Builder(
+                context,
+                canalId
+            )
+                .setSmallIcon(
+                    android.R.drawable.ic_dialog_info
+                )
+                .setContentTitle(titulo)
+                .setContentText(mensaje)
+                .setPriority(
+                    NotificationCompat.PRIORITY_DEFAULT
+                )
+                .setAutoCancel(true)
+
+        abrirAppPendingIntent?.let {
+            builder.setContentIntent(it)
+        }
+
+        val notificacion =
+            builder.build()
 
         try {
             manager.notify(

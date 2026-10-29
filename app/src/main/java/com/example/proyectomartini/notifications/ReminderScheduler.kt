@@ -12,7 +12,7 @@ object ReminderScheduler {
         context: Context,
         titulo: String,
         mensaje: String,
-        minutos: Long = 1
+        segundos: Long = 10
     ) {
         val intent = Intent(
             context,
@@ -35,7 +35,7 @@ object ReminderScheduler {
         ) as AlarmManager
 
         val tiempo = SystemClock.elapsedRealtime() +
-                minutos.coerceAtLeast(1) * 60_000L
+                segundos.coerceAtLeast(1) * 1000L
 
         alarmManager.setAndAllowWhileIdle(
             AlarmManager.ELAPSED_REALTIME_WAKEUP,

@@ -374,8 +374,8 @@ fun ExploreScreen(
         mutableStateOf("")
     }
 
-    var filtro by remember(tipoInicial) {
-        mutableStateOf("Todas")
+    var categoriasSeleccionadas by remember(tipoInicial) {
+        mutableStateOf(setOf<String>())
     }
 
     val filtrados = contenidosMartini.filter { contenido ->
@@ -385,8 +385,8 @@ fun ExploreScreen(
                     contenido.tipo.contains(busqueda, true)
 
         val coincideCategoria =
-            filtro == "Todas" ||
-                    contenido.categoria == filtro
+            categoriasSeleccionadas.isEmpty() ||
+                    contenido.categoria in categoriasSeleccionadas
 
         val coincideTipo =
             tipoInicial == "Todas" ||
@@ -468,9 +468,22 @@ fun ExploreScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             categoriasMartini.forEach { categoria ->
+                val seleccionada = if (categoria == "Todas") {
+                    categoriasSeleccionadas.isEmpty()
+                } else {
+                    categoria in categoriasSeleccionadas
+                }
+
                 FilterChip(
-                    selected = filtro == categoria,
-                    onClick = { filtro = categoria },
+                    selected = seleccionada,
+                    onClick = {
+                        categoriasSeleccionadas = when {
+                            categoria == "Todas" -> emptySet()
+                            categoria in categoriasSeleccionadas ->
+                                categoriasSeleccionadas - categoria
+                            else -> categoriasSeleccionadas + categoria
+                        }
+                    },
                     label = { Text(categoria) }
                 )
             }
@@ -693,4 +706,3 @@ fun ExploreScreen(
         }
     }
 }
-

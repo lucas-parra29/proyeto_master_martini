@@ -1,3 +1,4 @@
+
 package com.example.proyectomartini.ui.screens
 
 import android.Manifest
@@ -18,6 +19,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,6 +47,10 @@ fun EditProfileScreen(
 ) {
     val estado by editViewModel.uiState.collectAsState()
     val context = LocalContext.current
+
+    var nuevoInteres by rememberSaveable {
+        mutableStateOf("")
+    }
 
     var mensajeFoto by remember {
         mutableStateOf<String?>(null)
@@ -144,7 +150,6 @@ fun EditProfileScreen(
             .background(FondoMartini)
             .verticalScroll(rememberScrollState())
     ) {
-
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -152,10 +157,7 @@ fun EditProfileScreen(
                 .padding(20.dp)
         ) {
             TextButton(onClick = onBackClick) {
-                Text(
-                    text = "← Volver",
-                    color = Color.White
-                )
+                Text("← Volver", color = Color.White)
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -168,7 +170,7 @@ fun EditProfileScreen(
             )
 
             Text(
-                text = "Actualiza tu información personal",
+                text = "Actualiza tus datos y los de tu empresa",
                 fontSize = 14.sp,
                 color = Color.White
             )
@@ -179,7 +181,6 @@ fun EditProfileScreen(
                 .fillMaxWidth()
                 .padding(20.dp)
         ) {
-
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
@@ -199,9 +200,7 @@ fun EditProfileScreen(
                         shape = CircleShape,
                         color = Color(0xFFE1E8E2)
                     ) {
-                        Box(
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Box(contentAlignment = Alignment.Center) {
                             Text(
                                 text = "Sin foto",
                                 color = VerdeMartini
@@ -216,17 +215,13 @@ fun EditProfileScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     OutlinedButton(
-                        onClick = {
-                            galeria.launch("image/*")
-                        }
+                        onClick = { galeria.launch("image/*") }
                     ) {
                         Text("Galería")
                     }
 
                     OutlinedButton(
-                        onClick = {
-                            camara.launch(null)
-                        }
+                        onClick = { camara.launch(null) }
                     ) {
                         Text("Cámara")
                     }
@@ -279,13 +274,111 @@ fun EditProfileScreen(
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Información de negocio",
+                text = "Mis intereses",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = VerdeMartini
             )
 
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Puedes agregar varios intereses.",
+                fontSize = 14.sp,
+                color = Color.DarkGray
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedTextField(
+                value = nuevoInteres,
+                onValueChange = { nuevoInteres = it },
+                label = { Text("Nuevo interés") },
+                placeholder = { Text("Ejemplo: Chocolatería") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(
+                onClick = {
+                    editViewModel.agregarInteres(nuevoInteres)
+                    nuevoInteres = ""
+                },
+                enabled = nuevoInteres.isNotBlank() &&
+                        !nuevoInteres.contains(","),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = VerdeMartini
+                )
+            ) {
+                Text("+ Agregar interés")
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            val listaIntereses = estado.intereses
+                .split(",")
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+
+            listaIntereses.forEach { interes ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = interes,
+                        modifier = Modifier.weight(1f),
+                        color = VerdeMartini
+                    )
+
+                    TextButton(
+                        onClick = {
+                            editViewModel.eliminarInteres(interes)
+                        }
+                    ) {
+                        Text("Eliminar")
+                    }
+                }
+            }
+
+            estado.interesesError?.let { error ->
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Información de la empresa",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = VerdeMartini
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Agrega los datos de la empresa a la que perteneces.",
+                fontSize = 14.sp,
+                color = Color.DarkGray
+            )
+
             Spacer(modifier = Modifier.height(16.dp))
+
+            CampoPerfil(
+                titulo = "Nombre de la empresa",
+                valor = estado.nombreEmpresa,
+                error = null,
+                onValueChange = editViewModel::cambiarNombreEmpresa
+            )
 
             CampoPerfil(
                 titulo = "Tipo de negocio",
@@ -295,10 +388,24 @@ fun EditProfileScreen(
             )
 
             CampoPerfil(
-                titulo = "Intereses",
-                valor = estado.intereses,
-                error = estado.interesesError,
-                onValueChange = editViewModel::cambiarIntereses
+                titulo = "Dirección de la empresa",
+                valor = estado.direccionEmpresa,
+                error = null,
+                onValueChange = editViewModel::cambiarDireccionEmpresa
+            )
+
+            CampoPerfil(
+                titulo = "Cargo en la empresa",
+                valor = estado.cargoEmpresa,
+                error = null,
+                onValueChange = editViewModel::cambiarCargoEmpresa
+            )
+
+            CampoPerfil(
+                titulo = "Descripción de la empresa",
+                valor = estado.descripcionEmpresa,
+                error = null,
+                onValueChange = editViewModel::cambiarDescripcionEmpresa
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -323,10 +430,7 @@ fun EditProfileScreen(
             }
 
             if (estado.guardadoExitoso) {
-
-                Spacer(
-                    modifier = Modifier.height(16.dp)
-                )
+                Spacer(modifier = Modifier.height(16.dp))
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
@@ -335,9 +439,8 @@ fun EditProfileScreen(
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-
                     Text(
-                        text = " Perfil actualizado correctamente",
+                        text = "Perfil actualizado correctamente",
                         color = VerdeMartini,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(16.dp)
@@ -361,7 +464,7 @@ fun EditProfileScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Recibe recordatorios sobre cursos, recetas y contenidos de Master Martini.",
+                text = "Recibe recordatorios sobre cursos y recetas.",
                 fontSize = 14.sp,
                 color = Color.DarkGray
             )
@@ -397,7 +500,6 @@ fun EditProfileScreen(
 
             mensajeRecordatorio?.let { mensaje ->
                 Spacer(modifier = Modifier.height(8.dp))
-
                 Text(
                     text = mensaje,
                     color = VerdeMartini,
@@ -421,9 +523,7 @@ private fun CampoPerfil(
     OutlinedTextField(
         value = valor,
         onValueChange = onValueChange,
-        label = {
-            Text(titulo)
-        },
+        label = { Text(titulo) },
         modifier = Modifier.fillMaxWidth(),
         keyboardOptions = KeyboardOptions(
             keyboardType = tipoTeclado

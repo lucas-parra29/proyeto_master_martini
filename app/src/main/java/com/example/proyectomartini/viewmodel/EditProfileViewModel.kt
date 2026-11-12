@@ -1,3 +1,4 @@
+
 package com.example.proyectomartini.viewmodel
 
 import android.app.Application
@@ -16,6 +17,10 @@ data class EditProfileUiState(
     val tipoNegocio: String = "",
     val intereses: String = "",
     val foto: String = "",
+    val nombreEmpresa: String = "",
+    val direccionEmpresa: String = "",
+    val cargoEmpresa: String = "",
+    val descripcionEmpresa: String = "",
     val nombreError: String? = null,
     val correoError: String? = null,
     val telefonoError: String? = null,
@@ -29,7 +34,6 @@ class EditProfileViewModel(
 ) : AndroidViewModel(application) {
 
     private val repository = ProfileRepository(application)
-
     private val perfil = repository.obtenerPerfil()
 
     private val _uiState = MutableStateFlow(
@@ -39,7 +43,11 @@ class EditProfileViewModel(
             telefono = perfil.telefono,
             tipoNegocio = perfil.tipoNegocio,
             intereses = perfil.intereses,
-            foto = perfil.foto
+            foto = perfil.foto,
+            nombreEmpresa = perfil.nombreEmpresa,
+            direccionEmpresa = perfil.direccionEmpresa,
+            cargoEmpresa = perfil.cargoEmpresa,
+            descripcionEmpresa = perfil.descripcionEmpresa
         )
     )
 
@@ -95,12 +103,58 @@ class EditProfileViewModel(
         }
     }
 
+    fun agregarInteres(valor: String) {
+        val nuevo = valor.trim()
+        if (nuevo.isBlank() || nuevo.contains(",")) return
+
+        val actuales = _uiState.value.intereses
+            .split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+
+        if (actuales.any { it.equals(nuevo, ignoreCase = true) }) return
+
+        cambiarIntereses((actuales + nuevo).joinToString(", "))
+    }
+
+    fun eliminarInteres(valor: String) {
+        val restantes = _uiState.value.intereses
+            .split(",")
+            .map { it.trim() }
+            .filter {
+                it.isNotEmpty() && !it.equals(valor, ignoreCase = true)
+            }
+
+        cambiarIntereses(restantes.joinToString(", "))
+    }
+
     fun cambiarFoto(ruta: String) {
         _uiState.update {
-            it.copy(
-                foto = ruta,
-                guardadoExitoso = false
-            )
+            it.copy(foto = ruta, guardadoExitoso = false)
+        }
+    }
+
+    fun cambiarNombreEmpresa(valor: String) {
+        _uiState.update {
+            it.copy(nombreEmpresa = valor, guardadoExitoso = false)
+        }
+    }
+
+    fun cambiarDireccionEmpresa(valor: String) {
+        _uiState.update {
+            it.copy(direccionEmpresa = valor, guardadoExitoso = false)
+        }
+    }
+
+    fun cambiarCargoEmpresa(valor: String) {
+        _uiState.update {
+            it.copy(cargoEmpresa = valor, guardadoExitoso = false)
+        }
+    }
+
+    fun cambiarDescripcionEmpresa(valor: String) {
+        _uiState.update {
+            it.copy(descripcionEmpresa = valor, guardadoExitoso = false)
         }
     }
 
@@ -112,17 +166,16 @@ class EditProfileViewModel(
         } else null
 
         val correoError = if (
-            !Patterns.EMAIL_ADDRESS.matcher(
-                estado.correo.trim()
-            ).matches()
+            !Patterns.EMAIL_ADDRESS
+                .matcher(estado.correo.trim())
+                .matches()
         ) {
             "Ingresa un correo válido"
         } else null
 
         val telefonoError = if (
-            !Regex("""^\+?[0-9]{8,15}$""").matches(
-                estado.telefono.trim().replace(" ", "")
-            )
+            !Regex("""^\+?[0-9]{8,15}$""")
+                .matches(estado.telefono.trim().replace(" ", ""))
         ) {
             "Ingresa un teléfono válido"
         } else null
@@ -132,7 +185,7 @@ class EditProfileViewModel(
         } else null
 
         val interesesError = if (estado.intereses.isBlank()) {
-            "Ingresa tus intereses"
+            "Agrega al menos un interés"
         } else null
 
         val valido = listOf(
@@ -162,7 +215,11 @@ class EditProfileViewModel(
                     telefono = estado.telefono.trim(),
                     tipoNegocio = estado.tipoNegocio.trim(),
                     intereses = estado.intereses.trim(),
-                    foto = estado.foto
+                    foto = estado.foto,
+                    nombreEmpresa = estado.nombreEmpresa.trim(),
+                    direccionEmpresa = estado.direccionEmpresa.trim(),
+                    cargoEmpresa = estado.cargoEmpresa.trim(),
+                    descripcionEmpresa = estado.descripcionEmpresa.trim()
                 )
             )
         }

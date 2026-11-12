@@ -1,3 +1,4 @@
+
 package com.example.proyectomartini.data.repository
 
 import android.content.Context
@@ -8,7 +9,11 @@ data class UserProfile(
     val telefono: String = "",
     val tipoNegocio: String = "",
     val intereses: String = "",
-    val foto: String = ""
+    val foto: String = "",
+    val nombreEmpresa: String = "",
+    val direccionEmpresa: String = "",
+    val cargoEmpresa: String = "",
+    val descripcionEmpresa: String = ""
 )
 
 class ProfileRepository(context: Context) {
@@ -25,7 +30,11 @@ class ProfileRepository(context: Context) {
             telefono = preferences.getString("telefono", "") ?: "",
             tipoNegocio = preferences.getString("tipoNegocio", "") ?: "",
             intereses = preferences.getString("intereses", "") ?: "",
-            foto = preferences.getString("foto", "") ?: ""
+            foto = preferences.getString("foto", "") ?: "",
+            nombreEmpresa = preferences.getString("nombreEmpresa", "") ?: "",
+            direccionEmpresa = preferences.getString("direccionEmpresa", "") ?: "",
+            cargoEmpresa = preferences.getString("cargoEmpresa", "") ?: "",
+            descripcionEmpresa = preferences.getString("descripcionEmpresa", "") ?: ""
         )
     }
 
@@ -37,6 +46,10 @@ class ProfileRepository(context: Context) {
             .putString("tipoNegocio", perfil.tipoNegocio)
             .putString("intereses", perfil.intereses)
             .putString("foto", perfil.foto)
+            .putString("nombreEmpresa", perfil.nombreEmpresa)
+            .putString("direccionEmpresa", perfil.direccionEmpresa)
+            .putString("cargoEmpresa", perfil.cargoEmpresa)
+            .putString("descripcionEmpresa", perfil.descripcionEmpresa)
             .apply()
     }
 }

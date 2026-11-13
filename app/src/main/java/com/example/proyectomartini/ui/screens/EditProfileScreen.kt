@@ -19,7 +19,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +39,7 @@ import java.io.File
 private val VerdeMartini = Color(0xFF174D3D)
 private val FondoMartini = Color(0xFFF7F8F5)
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun EditProfileScreen(
     onBackClick: () -> Unit = {},
@@ -47,10 +47,6 @@ fun EditProfileScreen(
 ) {
     val estado by editViewModel.uiState.collectAsState()
     val context = LocalContext.current
-
-    var nuevoInteres by rememberSaveable {
-        mutableStateOf("")
-    }
 
     var mensajeFoto by remember {
         mutableStateOf<String?>(null)
@@ -283,67 +279,51 @@ fun EditProfileScreen(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "Puedes agregar varios intereses.",
+                text = "Toca los que te interesan.",
                 fontSize = 14.sp,
                 color = Color.DarkGray
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            OutlinedTextField(
-                value = nuevoInteres,
-                onValueChange = { nuevoInteres = it },
-                label = { Text("Nuevo interés") },
-                placeholder = { Text("Ejemplo: Chocolatería") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
+            val opcionesIntereses = listOf(
+                "Chocolatería",
+                "Pastelería de vitrina",
+                "Heladería",
+                "Bollería",
+                "Masas de hoja",
+                "Galletas",
+                "Empanadas",
+                "Productos de horneo"
             )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Button(
-                onClick = {
-                    editViewModel.agregarInteres(nuevoInteres)
-                    nuevoInteres = ""
-                },
-                enabled = nuevoInteres.isNotBlank() &&
-                        !nuevoInteres.contains(","),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = VerdeMartini
-                )
-            ) {
-                Text("+ Agregar interés")
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
 
             val listaIntereses = estado.intereses
                 .split(",")
                 .map { it.trim() }
                 .filter { it.isNotEmpty() }
 
-            listaIntereses.forEach { interes ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = interes,
-                        modifier = Modifier.weight(1f),
-                        color = VerdeMartini
-                    )
+            // Intereses guardados antes que no están en la lista (para poder quitarlos)
+            val interesesExtra = listaIntereses.filter { guardado ->
+                opcionesIntereses.none { it.equals(guardado, ignoreCase = true) }
+            }
 
-                    TextButton(
-                        onClick = {
-                            editViewModel.eliminarInteres(interes)
-                        }
-                    ) {
-                        Text("Eliminar")
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                (opcionesIntereses + interesesExtra).forEach { opcion ->
+                    val activo = listaIntereses.any {
+                        it.equals(opcion, ignoreCase = true)
                     }
+
+                    FilterChip(
+                        selected = activo,
+                        onClick = {
+                            if (activo) editViewModel.eliminarInteres(opcion)
+                            else editViewModel.agregarInteres(opcion)
+                        },
+                        label = { Text(opcion) }
+                    )
                 }
             }
 

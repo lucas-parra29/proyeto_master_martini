@@ -1,10 +1,18 @@
 package com.example.proyectomartini.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.proyectomartini.data.repository.AuthRepository
+import com.example.proyectomartini.data.repository.ProfileRepository
+import com.example.proyectomartini.data.repository.ResultadoAuth
+import com.example.proyectomartini.data.repository.UserProfile
+import com.example.proyectomartini.utils.ValidadorFormulario
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class LoginUiState(
     val correo: String = "",
@@ -12,17 +20,16 @@ data class LoginUiState(
     val correoError: String? = null,
     val passwordError: String? = null,
     val loginError: String? = null,
-    val loginExitoso: Boolean = false
+    val loginExitoso: Boolean = false,
+    val cargando: Boolean = false
 )
 
 class LoginViewModel(
-    application: android.app.Application
-) : androidx.lifecycle.AndroidViewModel(application) {
+    application: Application
+) : AndroidViewModel(application) {
 
-    private val authRepository =
-        com.example.proyectomartini.data.repository.AuthRepository(
-            application
-        )
+    private val authRepository = AuthRepository(application)
+    private val profileRepository = ProfileRepository(application)
 
     private val _uiState = MutableStateFlow(LoginUiState())
 
@@ -53,34 +60,27 @@ class LoginViewModel(
 
         val estado = _uiState.value
 
+        if (estado.cargando) return
+
+        // Limpiar el correo electrónico
+        val correoLimpio =
+            ValidadorFormulario.limpiarCorreo(estado.correo)
+
+        // Utilizar las validaciones centralizadas
         val correoError =
-            when {
-                estado.correo.isBlank() ->
-                    "Ingresa tu correo"
-
-                !android.util.Patterns.EMAIL_ADDRESS
-                    .matcher(estado.correo)
-                    .matches() ->
-                    "Ingresa un correo válido"
-
-                else -> null
-            }
+            ValidadorFormulario.validarCorreo(correoLimpio)
 
         val passwordError =
-            when {
-                estado.password.isBlank() ->
-                    "Ingresa tu contraseña"
+            ValidadorFormulario.validarPasswordLogin(
+                estado.password
+            )
 
-                estado.password.length < 6 ->
-                    "La contraseña debe tener al menos 6 caracteres"
-
-                else -> null
-            }
-
+        // Comprobar errores del formulario
         if (correoError != null || passwordError != null) {
 
             _uiState.update {
                 it.copy(
+                    correo = correoLimpio,
                     correoError = correoError,
                     passwordError = passwordError,
                     loginExitoso = false
@@ -90,20 +90,68 @@ class LoginViewModel(
             return
         }
 
-        val credencialesCorrectas =
-            authRepository.validarCredenciales(
-                correo = estado.correo,
-                password = estado.password
-            )
-
+        // Activar estado de carga
         _uiState.update {
             it.copy(
-                loginExitoso = credencialesCorrectas,
-                loginError =
-                    if (!credencialesCorrectas)
-                        "Correo o contraseña incorrectos"
-                    else null
+                correo = correoLimpio,
+                cargando = true,
+                loginError = null,
+                loginExitoso = false
             )
+        }
+
+        // Consultar al backend
+        viewModelScope.launch {
+
+            try {
+
+                when (
+                    val resultado = authRepository.iniciarSesion(
+                        correo = correoLimpio,
+                        password = estado.password
+                    )
+                ) {
+
+                    is ResultadoAuth.Exito -> {
+
+                        val perfil =
+                            profileRepository.obtenerPerfil()
+
+                        // Actualizar perfil si pertenece a otra cuenta
+                        if (perfil.correo != resultado.correo) {
+
+                            profileRepository.guardarPerfil(
+                                UserProfile(
+                                    nombre = resultado.nombre,
+                                    correo = resultado.correo
+                                )
+                            )
+                        }
+
+                        _uiState.update {
+                            it.copy(
+                                loginExitoso = true
+                            )
+                        }
+                    }
+
+                    is ResultadoAuth.Error -> {
+
+                        _uiState.update {
+                            it.copy(
+                                loginExitoso = false,
+                                loginError = resultado.mensaje
+                            )
+                        }
+                    }
+                }
+
+            } finally {
+
+                _uiState.update {
+                    it.copy(cargando = false)
+                }
+            }
         }
     }
 
@@ -113,4 +161,3 @@ class LoginViewModel(
         }
     }
 }
-

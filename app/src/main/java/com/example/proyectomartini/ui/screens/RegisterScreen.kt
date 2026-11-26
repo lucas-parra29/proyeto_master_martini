@@ -1,3 +1,4 @@
+
 package com.example.proyectomartini.ui.screens
 
 import androidx.compose.foundation.background
@@ -26,6 +27,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.ui.Alignment
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+
 @Composable
 fun RegisterScreen(
     onBackClick: () -> Unit = {},
@@ -90,6 +92,7 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Campo de nombre completo
             OutlinedTextField(
                 value = state.nombre,
                 onValueChange = registerViewModel::onNombreChange,
@@ -117,6 +120,7 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            // Campo de correo electrónico
             OutlinedTextField(
                 value = state.correo,
                 onValueChange = registerViewModel::onCorreoChange,
@@ -147,6 +151,7 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            // Campo de teléfono
             OutlinedTextField(
                 value = state.telefono,
                 onValueChange = registerViewModel::onTelefonoChange,
@@ -177,6 +182,7 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            // Campo de tipo de negocio
             OutlinedTextField(
                 value = state.tipoNegocio,
                 onValueChange = registerViewModel::onTipoNegocioChange,
@@ -207,6 +213,7 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            // Campo de contraseña
             OutlinedTextField(
                 value = state.password,
                 onValueChange = registerViewModel::onPasswordChange,
@@ -236,6 +243,7 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(10.dp))
 
+            // Campo de confirmación de contraseña
             OutlinedTextField(
                 value = state.confirmarPassword,
                 onValueChange =
@@ -266,10 +274,12 @@ fun RegisterScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
+            // Botón de registro
             Button(
                 onClick = {
                     registerViewModel.registrar()
                 },
+                enabled = !state.cargando,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(55.dp),
@@ -280,11 +290,29 @@ fun RegisterScreen(
             ) {
 
                 Text(
-                    text = "Crear cuenta",
+                    text = if (state.cargando)
+                        "Creando cuenta..."
+                    else
+                        "Crear cuenta",
                     fontWeight = FontWeight.Bold
                 )
             }
 
+            // Mostrar errores devueltos por el servidor
+            state.registroError?.let { mensaje ->
+
+                Spacer(
+                    modifier = Modifier.height(12.dp)
+                )
+
+                Text(
+                    text = mensaje,
+                    color = MaterialTheme.colorScheme.error,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
+            // Animación de registro exitoso
             AnimatedVisibility(
                 visible = state.registroExitoso,
                 enter = fadeIn() + expandVertically(),
@@ -300,11 +328,12 @@ fun RegisterScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors = CardDefaults.cardColors(
-                            containerColor = VerdeBosque.copy(alpha = 0.12f)
+                            containerColor = VerdeBosque.copy(
+                                alpha = 0.12f
+                            )
                         ),
                         shape = RoundedCornerShape(16.dp)
                     ) {
-
 
                         Row(
                             modifier = Modifier
@@ -330,10 +359,12 @@ fun RegisterScreen(
                             )
                         }
                     }
+
                     Spacer(
                         modifier = Modifier.height(12.dp)
                     )
 
+                    // Regresar al inicio de sesión
                     Button(
                         onClick = onLoginClick,
                         modifier = Modifier.fillMaxWidth(),
@@ -342,6 +373,7 @@ fun RegisterScreen(
                             containerColor = VerdePino
                         )
                     ) {
+
                         Text(
                             text = "Ir a iniciar sesión",
                             fontWeight = FontWeight.Bold
@@ -353,8 +385,6 @@ fun RegisterScreen(
             Spacer(
                 modifier = Modifier.height(30.dp)
             )
-
         }
     }
 }
-

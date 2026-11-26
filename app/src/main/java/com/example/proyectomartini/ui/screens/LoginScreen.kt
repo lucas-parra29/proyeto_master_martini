@@ -1,3 +1,4 @@
+
 package com.example.proyectomartini.ui.screens
 
 import androidx.compose.foundation.Image
@@ -83,6 +84,7 @@ fun LoginScreen(
             modifier = Modifier.height(30.dp)
         )
 
+        // Campo de correo electrónico
         OutlinedTextField(
             value = state.correo,
             onValueChange = loginViewModel::onCorreoChange,
@@ -112,6 +114,7 @@ fun LoginScreen(
             modifier = Modifier.height(10.dp)
         )
 
+        // Campo de contraseña
         OutlinedTextField(
             value = state.password,
             onValueChange = loginViewModel::onPasswordChange,
@@ -139,6 +142,7 @@ fun LoginScreen(
             shape = RoundedCornerShape(16.dp)
         )
 
+        // Mostrar errores del servidor
         if (state.loginError != null) {
 
             Spacer(
@@ -156,10 +160,12 @@ fun LoginScreen(
             modifier = Modifier.height(24.dp)
         )
 
+        // Botón de inicio de sesión
         Button(
             onClick = {
                 loginViewModel.iniciarSesion()
             },
+            enabled = !state.cargando,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(55.dp),
@@ -170,7 +176,10 @@ fun LoginScreen(
         ) {
 
             Text(
-                text = "Iniciar sesión",
+                text = if (state.cargando)
+                    "Ingresando..."
+                else
+                    "Iniciar sesión",
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
             )
@@ -208,4 +217,3 @@ fun LoginScreen(
         )
     }
 }
-

@@ -1,7 +1,18 @@
 package com.example.proyectomartini.data.repository
 
 import android.content.Context
-import java.security.MessageDigest
+import com.example.proyectomartini.data.remote.AuthApi
+import com.example.proyectomartini.data.remote.AuthResponse
+import com.example.proyectomartini.data.remote.LoginRequest
+import com.example.proyectomartini.data.remote.RegistroRequest
+import com.example.proyectomartini.data.remote.RetrofitClient
+import retrofit2.HttpException
+import java.io.IOException
+
+sealed interface ResultadoAuth {
+    data class Exito(val nombre: String, val correo: String) : ResultadoAuth
+    data class Error(val mensaje: String) : ResultadoAuth
+}
 
 class AuthRepository(context: Context) {
 
@@ -10,56 +21,62 @@ class AuthRepository(context: Context) {
         Context.MODE_PRIVATE
     )
 
-    fun registrarUsuario(
+    private val api: AuthApi = RetrofitClient
+        .crear { obtenerToken() }
+        .create(AuthApi::class.java)
+
+    suspend fun registrar(
         nombre: String,
         correo: String,
         password: String
-    ) {
-        preferences.edit()
-            .putString("nombre", nombre.trim())
-            .putString("correo", correo.trim().lowercase())
-            .putString("password_hash", crearHash(password))
-            .apply()
+    ): ResultadoAuth = llamar {
+        api.registrar(
+            RegistroRequest(nombre.trim(), correo.trim().lowercase(), password)
+        )
     }
 
-    fun validarCredenciales(
+    suspend fun iniciarSesion(
         correo: String,
         password: String
-    ): Boolean {
-
-        val correoNormalizado = correo.trim().lowercase()
-
-        // Usuario demo del MVP
-        if (
-            correoNormalizado == "demo@martini.cl" &&
-            password == "martini123"
-        ) {
-            return true
-        }
-
-        val correoGuardado =
-            preferences.getString("correo", null)
-
-        val passwordGuardada =
-            preferences.getString("password_hash", null)
-
-        return correoGuardado == correoNormalizado &&
-                passwordGuardada == crearHash(password)
+    ): ResultadoAuth = llamar {
+        api.iniciarSesion(
+            LoginRequest(correo.trim().lowercase(), password)
+        )
     }
 
-    fun existeCuenta(): Boolean {
-        return preferences.contains("correo")
+    fun obtenerToken(): String? = preferences.getString("token", null)
+
+    fun haySesion(): Boolean = obtenerToken() != null
+
+    fun cerrarSesion() {
+        preferences.edit().clear().apply()
     }
 
-    private fun crearHash(texto: String): String {
+    private suspend fun llamar(accion: suspend () -> AuthResponse): ResultadoAuth {
+        return try {
+            val respuesta = accion()
 
-        val bytes = MessageDigest
-            .getInstance("SHA-256")
-            .digest(texto.toByteArray())
+            preferences.edit()
+                .putString("token", respuesta.token)
+                .putString("nombre", respuesta.nombre)
+                .putString("correo", respuesta.correo)
+                .apply()
 
-        return bytes.joinToString("") {
-            "%02x".format(it)
+            ResultadoAuth.Exito(respuesta.nombre, respuesta.correo)
+
+        } catch (e: HttpException) {
+            ResultadoAuth.Error(
+                when (e.code()) {
+                    400 -> "Revisa los datos ingresados"
+                    401 -> "Correo o contraseña incorrectos"
+                    409 -> "Ya existe una cuenta con ese correo"
+                    else -> "El servidor respondió con un error (${e.code()})"
+                }
+            )
+        } catch (e: IOException) {
+            ResultadoAuth.Error(
+                "No se pudo conectar con el servidor. Revisa tu conexión a internet."
+            )
         }
     }
 }
-

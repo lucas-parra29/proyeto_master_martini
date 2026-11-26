@@ -1,10 +1,18 @@
 package com.example.proyectomartini.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.proyectomartini.data.repository.AuthRepository
+import com.example.proyectomartini.data.repository.ProfileRepository
+import com.example.proyectomartini.data.repository.ResultadoAuth
+import com.example.proyectomartini.data.repository.UserProfile
+import com.example.proyectomartini.utils.ValidadorFormulario
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 data class RegisterUiState(
     val nombre: String = "",
@@ -21,24 +29,23 @@ data class RegisterUiState(
     val passwordError: String? = null,
     val confirmarPasswordError: String? = null,
 
+    val cargando: Boolean = false,
+    val registroError: String? = null,
     val registroExitoso: Boolean = false
 )
 
 class RegisterViewModel(
-    application: android.app.Application
-) : androidx.lifecycle.AndroidViewModel(application) {
+    application: Application
+) : AndroidViewModel(application) {
 
     private val authRepository =
-        com.example.proyectomartini.data.repository.AuthRepository(
-            application
-        )
+        AuthRepository(application)
 
     private val profileRepository =
-        com.example.proyectomartini.data.repository.ProfileRepository(
-            application
-        )
+        ProfileRepository(application)
 
-    private val _uiState = MutableStateFlow(RegisterUiState())
+    private val _uiState =
+        MutableStateFlow(RegisterUiState())
 
     val uiState: StateFlow<RegisterUiState> =
         _uiState.asStateFlow()
@@ -101,62 +108,50 @@ class RegisterViewModel(
 
         val estado = _uiState.value
 
+        if (estado.cargando) return
+
+        // Eliminar espacios del correo
+        val correoLimpio =
+            ValidadorFormulario.limpiarCorreo(estado.correo)
+
+        // Validar nombre
         val nombreError =
-            if (estado.nombre.isBlank())
-                "Ingresa tu nombre"
-            else null
+            ValidadorFormulario.validarNombre(
+                estado.nombre
+            )
 
+        // Validar correo
         val correoError =
-            when {
-                estado.correo.isBlank() ->
-                    "Ingresa tu correo"
+            ValidadorFormulario.validarCorreo(
+                correoLimpio
+            )
 
-                !android.util.Patterns.EMAIL_ADDRESS
-                    .matcher(estado.correo)
-                    .matches() ->
-                    "Ingresa un correo válido"
-
-                else -> null
-            }
-
+        // Validar teléfono
         val telefonoError =
-            when {
-                estado.telefono.isBlank() ->
-                    "Ingresa tu teléfono"
+            ValidadorFormulario.validarTelefono(
+                estado.telefono
+            )
 
-                estado.telefono.length < 8 ->
-                    "El teléfono es demasiado corto"
-
-                else -> null
-            }
-
+        // Validar tipo de negocio
         val negocioError =
-            if (estado.tipoNegocio.isBlank())
-                "Ingresa tu tipo de negocio"
-            else null
+            ValidadorFormulario.validarTipoNegocio(
+                estado.tipoNegocio
+            )
 
+        // Validar contraseña
         val passwordError =
-            when {
-                estado.password.isBlank() ->
-                    "Ingresa una contraseña"
+            ValidadorFormulario.validarPasswordRegistro(
+                estado.password
+            )
 
-                estado.password.length < 6 ->
-                    "Debe tener al menos 6 caracteres"
-
-                else -> null
-            }
-
+        // Validar confirmación de contraseña
         val confirmarError =
-            when {
-                estado.confirmarPassword.isBlank() ->
-                    "Confirma tu contraseña"
+            ValidadorFormulario.validarConfirmarPassword(
+                estado.password,
+                estado.confirmarPassword
+            )
 
-                estado.password != estado.confirmarPassword ->
-                    "Las contraseñas no coinciden"
-
-                else -> null
-            }
-
+        // Comprobar si existen errores
         val hayErrores =
             nombreError != null ||
                     correoError != null ||
@@ -165,34 +160,77 @@ class RegisterViewModel(
                     passwordError != null ||
                     confirmarError != null
 
-        if (!hayErrores) {
-
-            authRepository.registrarUsuario(
-                nombre = estado.nombre,
-                correo = estado.correo,
-                password = estado.password
-            )
-
-            profileRepository.guardarPerfil(
-                com.example.proyectomartini.data.repository.UserProfile(
-                    nombre = estado.nombre,
-                    correo = estado.correo,
-                    telefono = estado.telefono,
-                    tipoNegocio = estado.tipoNegocio
-                )
-            )
-        }
-
+        // Actualizar el formulario
         _uiState.update {
             it.copy(
+                correo = correoLimpio,
                 nombreError = nombreError,
                 correoError = correoError,
                 telefonoError = telefonoError,
                 tipoNegocioError = negocioError,
                 passwordError = passwordError,
                 confirmarPasswordError = confirmarError,
-                registroExitoso = !hayErrores
+                registroExitoso = false,
+                registroError = null
             )
+        }
+
+        // Detener el registro si existen errores
+        if (hayErrores) return
+
+        // Activar estado de carga
+        _uiState.update {
+            it.copy(cargando = true)
+        }
+
+        // Enviar los datos al backend
+        viewModelScope.launch {
+
+            try {
+
+                when (
+                    val resultado = authRepository.registrar(
+                        nombre = estado.nombre,
+                        correo = correoLimpio,
+                        password = estado.password
+                    )
+                ) {
+
+                    is ResultadoAuth.Exito -> {
+
+                        // Guardar el perfil local
+                        profileRepository.guardarPerfil(
+                            UserProfile(
+                                nombre = resultado.nombre,
+                                correo = resultado.correo,
+                                telefono = estado.telefono,
+                                tipoNegocio = estado.tipoNegocio
+                            )
+                        )
+
+                        _uiState.update {
+                            it.copy(
+                                registroExitoso = true
+                            )
+                        }
+                    }
+
+                    is ResultadoAuth.Error -> {
+
+                        _uiState.update {
+                            it.copy(
+                                registroError = resultado.mensaje
+                            )
+                        }
+                    }
+                }
+
+            } finally {
+
+                _uiState.update {
+                    it.copy(cargando = false)
+                }
+            }
         }
     }
 }

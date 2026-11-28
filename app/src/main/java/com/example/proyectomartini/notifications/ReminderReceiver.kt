@@ -34,6 +34,10 @@ class ReminderReceiver : BroadcastReceiver() {
             manager.createNotificationChannel(canal)
         }
 
+        val titulo = intent.getStringExtra("titulo") ?: "Master Martini"
+        val mensaje = intent.getStringExtra("mensaje") ?: "Tienes nuevos contenidos disponibles"
+        BandejaMartini(context).agregar(titulo, mensaje, "courses")
+
         if (
             Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(
@@ -44,17 +48,13 @@ class ReminderReceiver : BroadcastReceiver() {
             return
         }
 
-        val titulo = intent.getStringExtra("titulo")
-            ?: "Master Martini"
-
-        val mensaje = intent.getStringExtra("mensaje")
-            ?: "Tienes nuevos contenidos disponibles"
-
         val abrirAppIntent =
             context.packageManager
                 .getLaunchIntentForPackage(
                     context.packageName
                 )
+
+        abrirAppIntent?.putExtra("destino_aviso", "courses")
 
         val abrirAppPendingIntent =
             abrirAppIntent?.let { intentApp ->

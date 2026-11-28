@@ -5,7 +5,8 @@ import com.google.gson.annotations.SerializedName
 data class RegistroRequest(
     @SerializedName("nombre") val nombre: String,
     @SerializedName("correo") val correo: String,
-    @SerializedName("password") val password: String
+    @SerializedName("password") val password: String,
+    val perfil: PerfilRemoto? = null
 )
 
 data class LoginRequest(
@@ -16,5 +17,6 @@ data class LoginRequest(
 data class AuthResponse(
     @SerializedName("token") val token: String,
     @SerializedName("nombre") val nombre: String,
-    @SerializedName("correo") val correo: String
+    @SerializedName("correo") val correo: String,
+    val rol: String = "CLIENTE"
 )

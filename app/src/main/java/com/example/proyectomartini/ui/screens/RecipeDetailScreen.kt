@@ -1,17 +1,29 @@
 
 package com.example.proyectomartini.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import com.example.proyectomartini.utils.CostosReceta
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.proyectomartini.ui.theme.*
+import com.example.proyectomartini.R
 
 data class RecetaMartini(
     val id: String,
@@ -78,7 +90,7 @@ val recetasMartini = listOf(
         "Básico",
         FOTO_CHOCOLATE,
         "180 g de chocolate semiamargo|120 g de mantequilla|150 g de azúcar|3 huevos|100 g de harina|20 g de cacao|1 pizca de sal",
-        "Precalienta el horno a 180 °C.|Derrite el chocolate junto con la mantequilla.|Bate los huevos con el azúcar e incorpora el chocolate tibio.|Agrega la harina, el cacao y la sal.|Vierte en un molde forrado con papel de hornear.|Hornea aproximadamente 20 a 25 minutos y deja enfriar antes de cortar."
+        "Precalienta el horno a 180 °C.|Derrite el chocolate junto con la mantequilla.|Bate los huevos con el azúcar e incorpora el chocolate tibio.|Agrega la harina, el cacao y la sal.|Vierte en un molde forrado con papel de hornear.|Hornea a 180 °C aproximadamente 20 a 25 minutos.|Deja enfriar antes de cortar."
     ),
 
     receta(
@@ -120,7 +132,7 @@ val recetasMartini = listOf(
         "Básico",
         FOTO_PASTEL,
         "180 g de harina|130 g de azúcar|100 g de mantequilla|2 huevos|120 ml de leche|8 g de polvos de hornear|1 cucharadita de vainilla|200 g de queso crema|80 g de azúcar flor",
-        "Precalienta el horno a 180 °C.|Bate mantequilla con azúcar y agrega huevos y vainilla.|Incorpora la harina, los polvos de hornear y la leche.|Distribuye en cápsulas hasta dos tercios de su capacidad.|Hornea aproximadamente 18 a 22 minutos y deja enfriar.|Mezcla el queso crema con azúcar flor y decora los cupcakes."
+        "Precalienta el horno a 180 °C.|Bate mantequilla con azúcar y agrega huevos y vainilla.|Incorpora la harina, los polvos de hornear y la leche.|Distribuye en cápsulas hasta dos tercios de su capacidad.|Hornea a 180 °C aproximadamente 18 a 22 minutos.|Deja enfriar antes de decorar.|Mezcla el queso crema con azúcar flor y decora los cupcakes."
     ),
 
 
@@ -235,7 +247,7 @@ val recetasMartini = listOf(
         "Básico",
         FOTO_GALLETAS,
         "250 g de harina|130 g de mantequilla|100 g de azúcar rubia|60 g de azúcar blanca|1 huevo|150 g de chips de chocolate|5 g de bicarbonato",
-        "Bate la mantequilla con ambos tipos de azúcar.|Agrega el huevo e integra bien.|Añade harina y bicarbonato.|Incorpora los chips de chocolate.|Forma pequeñas porciones dejando espacio entre ellas.|Hornea a 180 °C aproximadamente 10 a 13 minutos y deja enfriar."
+        "Bate la mantequilla con ambos tipos de azúcar.|Agrega el huevo e integra bien.|Añade harina y bicarbonato.|Incorpora los chips de chocolate.|Forma pequeñas porciones dejando espacio entre ellas.|Hornea a 180 °C aproximadamente 10 a 13 minutos.|Deja enfriar antes de retirar."
     ),
 
     receta(
@@ -255,7 +267,7 @@ val recetasMartini = listOf(
         "Intermedio",
         FOTO_EMPANADAS,
         "500 g de harina|100 g de manteca o mantequilla|220 ml de agua tibia|10 g de sal|400 g de carne molida|3 cebollas|2 huevos duros|Aceitunas|Comino y ají de color",
-        "Sofríe la cebolla picada y agrega la carne, comino y ají de color.|Cocina completamente el pino, enfría y refrigera.|Amasa harina, grasa, agua y sal hasta obtener una masa flexible.|Divide y estira círculos de masa.|Rellena con pino, huevo duro y aceitunas.|Humedece los bordes y cierra las empanadas.|Hornea a 200 °C aproximadamente 25 a 35 minutos, hasta que estén doradas."
+        "Sofríe la cebolla picada y agrega la carne, comino y ají de color.|Cocina completamente el pino.|Enfría y refrigera el relleno.|Amasa harina, grasa, agua y sal hasta obtener una masa flexible.|Divide y estira círculos de masa.|Rellena con pino, huevo duro y aceitunas.|Humedece los bordes y cierra las empanadas.|Hornea a 200 °C aproximadamente 25 a 35 minutos, hasta que estén doradas."
     ),
 
     receta(
@@ -285,7 +297,7 @@ val recetasMartini = listOf(
         "Básico",
         FOTO_PAN,
         "500 g de harina|280 ml de agua tibia|60 g de manteca o mantequilla|7 g de levadura seca|10 g de sal",
-        "Mezcla harina, levadura, agua y sal.|Agrega la grasa y amasa hasta obtener una mezcla homogénea.|Deja reposar hasta que aumente de volumen.|Forma panes redondos y aplánalos ligeramente.|Pincha cada pan con un tenedor.|Deja fermentar brevemente y hornea a 200 °C durante aproximadamente 20 a 25 minutos."
+        "Mezcla harina, levadura, agua y sal.|Agrega la grasa y amasa hasta obtener una mezcla homogénea.|Deja reposar hasta que aumente de volumen.|Forma panes redondos y aplánalos ligeramente.|Pincha cada pan con un tenedor.|Deja fermentar brevemente.|Hornea a 200 °C durante aproximadamente 20 a 25 minutos."
     ),
 
     receta(
@@ -311,100 +323,172 @@ val recetasMartini = listOf(
 
 @Composable
 fun RecipeDetailScreen(
-    recetaId: String,
-    onBackClick: () -> Unit
+    recetaId: String, onBackClick: () -> Unit,
+    onVideoClick: (String, String) -> Unit = { _, _ -> },
+    favoritosViewModel: com.example.proyectomartini.viewmodel.FavoritosViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
+    val favoritos by favoritosViewModel.titulosFavoritos.collectAsState()
     val receta = recetasMartini.find { it.id == recetaId }
+    if (receta == null) {
+        CabeceraMartini("Receta no encontrada", "", onBackClick)
+        return
+    }
+    val context = LocalContext.current
+    val base = when (recetaId) {
+        "mousse", "brownies", "trufas", "cupcakes", "empanada-pollo", "galletas-chips", "galletas-mantequilla", "galletas-avena" -> 12
+        "torta-vainilla", "cheesecake", "milhojas", "rollos-canela", "brioche", "focaccia", "pan-integral" -> 8
+        "helado-vainilla", "helado-chocolate", "sorbete-frutilla" -> 6
+        else -> 10
+    }
+    var porciones by rememberSaveable(recetaId) { mutableIntStateOf(base) }
+    var pestaña by rememberSaveable(recetaId) { mutableStateOf("Ingredientes") }
+    var marcados by rememberSaveable(recetaId) { mutableStateOf(intArrayOf()) }
+    var pasosListos by rememberSaveable(recetaId) { mutableStateOf(intArrayOf()) }
+    var guiado by rememberSaveable(recetaId) { mutableStateOf(false) }
+    var pasoActual by rememberSaveable(recetaId) { mutableIntStateOf(0) }
+    val tiempo = tiemposRecetas[recetaId]
+    val producto = receta.ingredientes.indexOfFirst { it.endsWith("chocolate semiamargo") }
+    fun marcarPaso(paso: Int) {
+        pasosListos = if (paso in pasosListos) pasosListos.filterNot { it == paso }.toIntArray()
+            else pasosListos + paso
+    }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(NieveBrillante)
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
-        TextButton(onClick = onBackClick) {
-            Text("← Volver a Explorar", color = VerdePino)
+    if (guiado) {
+        BackHandler { guiado = false }
+        CocinaGuiada(receta, base, porciones, tiempo, pasoActual, { pasoActual = it },
+            pasosListos.toSet(), ::marcarPaso, { guiado = false })
+        return
+    }
+    val estadoTabs = rememberSaveableStateHolder()
+    val tutorialId = when (receta.categoria) {
+        "Chocolatería" -> if (receta.id == "mousse") "torta-avellana" else "chocolate"
+        "Pastelería" -> "crema-delice"
+        "Heladería" -> "helado"
+        else -> null
+    }
+    val video = tutorialesMartini.firstOrNull { it.id == tutorialId } ?: tutorialesMartini.firstOrNull { it.categoria == receta.categoria }
+    val duracion = tiempo?.let { formatoTiempoCocina(it.preparacion + it.coccion + it.reposo) }
+    fun compartir() {
+        val cantidad = receta.ingredientes.joinToString("\n") { "• " + CostosReceta.escalar(it, base, porciones) }
+        val envio = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, "${receta.titulo} · ${textoPorciones(porciones)}\n\n$cantidad")
         }
-
-        if (receta == null) {
-            Text(
-                "Receta no encontrada",
-                color = MaterialTheme.colorScheme.error
-            )
-            return@Column
+        context.startActivity(Intent.createChooser(envio, "Compartir ingredientes"))
+    }
+    Column(Modifier.fillMaxSize().background(Marfil)) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(Modifier.fillMaxWidth().aspectRatio(1.70f).clip(RoundedCornerShape(bottomStart = 22.dp, bottomEnd = 22.dp))) {
+                if (recetaId == "brownies") FotoEditorial("editorial_brownies", R.drawable.foto_brownies, Modifier.matchParentSize(), receta.titulo)
+                else PortadaMartini(receta.categoria, Modifier.matchParentSize(), recetaId = recetaId)
+                AccionCircular(Icons.Default.ArrowBack, "Volver", onBackClick, Modifier.align(Alignment.TopStart).padding(8.dp))
+                Row(Modifier.align(Alignment.TopEnd).padding(8.dp)) {
+                    val guardada = receta.titulo in favoritos
+                    AccionCircular(if (guardada) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        if (guardada) "Quitar de favoritos" else "Guardar en favoritos", {
+                            favoritosViewModel.alternar(com.example.proyectomartini.data.local.FavoritoEntity(
+                                receta.titulo, "RECETA", duracion ?: "Preparación paso a paso", receta.nivel))
+                        }, fondo = Papel, tinta = RojoCaoba)
+                    AccionCircular(Icons.Default.Share, "Compartir", ::compartir, fondo = Papel, tinta = VerdePino)
+                }
+            }
+            Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                Text(receta.titulo, Modifier.fillMaxWidth(), style = MaterialTheme.typography.headlineMedium,
+                    color = VerdePino, fontWeight = FontWeight.ExtraBold,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    duracion?.let { IndicadorEditorial(Icons.Default.Schedule, it, Modifier.weight(1f)) }
+                    IndicadorEditorial(Icons.Default.BarChart, receta.nivel, Modifier.weight(1f))
+                    IndicadorEditorial(Icons.Default.Restaurant, "${textoPorciones(porciones)}", Modifier.weight(1f))
+                }
+                Text(if (recetaId == "brownies") "Un clásico intenso de chocolate, con centro suave y una corteza fina y crujiente."
+                    else "Preparación de ${receta.categoria.lowercase()} para practicar en tu negocio.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.fillMaxWidth())
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    listOf("Ingredientes", "Preparación", "Tips").forEach {
+                        PildoraEditorial(it, pestaña == it, { pestaña = it }, Modifier.weight(if (it == "Tips") .65f else 1f))
+                    }
+                }
+                estadoTabs.SaveableStateProvider(pestaña) {
+                    when (pestaña) {
+                        "Ingredientes" -> {
+                            SuperficieEditorial {
+                                Column(Modifier.padding(13.dp)) {
+                                    Text("Ingredientes", style = MaterialTheme.typography.titleLarge, color = VerdePino)
+                                    receta.ingredientes.forEachIndexed { i, linea ->
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Checkbox(i in marcados, { listo -> marcados = if (listo) marcados + i else marcados.filterNot { it == i }.toIntArray() })
+                                            Column(Modifier.weight(1f)) {
+                                                Text(CostosReceta.escalar(linea, base, porciones))
+                                                if (i == producto) Text("Alternativa Master Martini disponible",
+                                                    style = MaterialTheme.typography.labelMedium, color = VerdePino)
+                                            }
+                                        }
+                                    }
+                                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp),
+                                        verticalAlignment = Alignment.CenterVertically) {
+                                        OutlinedButton(onClick = { porciones-- }, enabled = porciones > 1) { Text("−") }
+                                        Text("${textoPorciones(porciones)}", Modifier.weight(1f))
+                                        OutlinedButton(onClick = { porciones++ }, enabled = porciones < 120) { Text("+") }
+                                    }
+                                }
+                            }
+                            if (producto >= 0) SeccionMartini("Producto Master Martini") {
+                                CatalogoInsumoFoto("Chocolatería", Modifier.fillMaxWidth().height(135.dp))
+                                Text("Ariba · Discos de chocolate oscuro 57%", style = MaterialTheme.typography.titleMedium)
+                                Text("Chocolate de fusión con 57% de cacao. Puedes usarlo en la misma cantidad que el chocolate semiamargo de esta receta.")
+                                Text("Aplicaciones · Masas, mousses y ganaches", color = VerdePino)
+                                val navegador = androidx.compose.ui.platform.LocalUriHandler.current
+                                TextButton(onClick = {
+                                    navegador.openUri("https://www.martiniprofessional.cl/p/ariba-dischi-fondenti-57")
+                                }, modifier = Modifier.heightIn(min = 48.dp)) { Text("Ver ficha del producto") }
+                            }
+                            tiempo?.let { TiemposDeReceta(it) }
+                        }
+                        "Preparación" -> {
+                            BotonEditorial("Abrir modo cocina", {
+                                if (pasoActual == receta.pasos.size) pasoActual = 0
+                                guiado = true
+                            }, icono = Icons.Default.Restaurant)
+                            tiempo?.let { TiemposDeReceta(it) }
+                            SeccionMartini("Preparación paso a paso") {
+                                AvanceEditorial(pasosListos.size.toFloat() / receta.pasos.size, Modifier.fillMaxWidth())
+                                receta.pasos.forEachIndexed { i, paso ->
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Checkbox(i in pasosListos, { marcarPaso(i) })
+                                        Text("${i + 1}. $paso", Modifier.weight(1f))
+                                    }
+                                    tiempo?.temporizadores?.get(i + 1)?.let { minutos ->
+                                        OutlinedButton(onClick = { pasoActual = i; guiado = true },
+                                            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                                            Text("Temporizador · ${formatoTiempoCocina(minutos)}")
+                                        }
+                                    }
+                                }
+                            }
+                            SeccionMartini("Temporizador libre") {
+                                TemporizadorCocina("$recetaId/libre", receta.titulo)
+                            }
+                        }
+                        else -> {
+                            SeccionMartini("Tips del chef") {
+                                Text("Pesa las porciones, registra el rendimiento y comprueba el resultado antes de aumentar el lote.")
+                                Text("Receta de demostración académica. Revisa la ficha técnica y los alérgenos del insumo antes de usarlo.")
+                                Text("Portada ilustrativa.")
+                            }
+                            CalculadoraReceta(porciones)
+                        }
+                    }
+                }
+            }
+            Spacer(Modifier.height(5.dp))
         }
-
-        Text(
-            text = receta.titulo,
-            fontSize = 25.sp,
-            fontWeight = FontWeight.Bold,
-            color = VerdePino
-        )
-
-        Spacer(Modifier.height(8.dp))
-
-        Text(
-            text = "${receta.categoria} • ${receta.nivel}",
-            color = GrisTexto,
-            fontSize = 14.sp
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        ImagenMartini(
-            url = receta.imagenUrl,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(210.dp)
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        Text(
-            text = "Receta de demostración para Master Martini",
-            fontSize = 12.sp,
-            color = GrisTexto
-        )
-
-        Spacer(Modifier.height(20.dp))
-
-        Text(
-            text = "Ingredientes",
-            fontSize = 21.sp,
-            fontWeight = FontWeight.Bold,
-            color = VerdePino
-        )
-
-        Spacer(Modifier.height(8.dp))
-
-        receta.ingredientes.forEach { ingrediente ->
-            Text(
-                text = "• $ingrediente",
-                color = VerdePino,
-                modifier = Modifier.padding(vertical = 5.dp)
-            )
+        if (video != null) {
+            Box(Modifier.fillMaxWidth().background(Marfil).padding(horizontal = 16.dp, vertical = 6.dp)) {
+                BotonEditorial("Ver video de la receta", { onVideoClick(video.id, video.titulo) }, icono = Icons.Default.PlayArrow)
+            }
         }
-
-        Spacer(Modifier.height(22.dp))
-
-        Text(
-            text = "Preparación paso a paso",
-            fontSize = 21.sp,
-            fontWeight = FontWeight.Bold,
-            color = VerdePino
-        )
-
-        Spacer(Modifier.height(8.dp))
-
-        receta.pasos.forEachIndexed { index, paso ->
-            Text(
-                text = "${index + 1}. $paso",
-                color = VerdePino,
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-        }
-
-        Spacer(Modifier.height(30.dp))
     }
 }

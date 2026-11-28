@@ -4,8 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.proyectomartini.data.local.FavoritoEntity
-import com.example.proyectomartini.data.local.MartiniDatabase
-import com.example.proyectomartini.data.repository.FavoritoRepository
+import com.example.proyectomartini.data.repository.FavoritoSincronizador
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -14,9 +13,11 @@ import kotlinx.coroutines.launch
 
 class FavoritosViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val repo = FavoritoRepository(
-        MartiniDatabase.getInstance(app).favoritoDao()
-    )
+    private val repo = FavoritoSincronizador(app)
+
+    init {
+        viewModelScope.launch { repo.sincronizar() }
+    }
 
     val favoritos: StateFlow<List<FavoritoEntity>> = repo.favoritos
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -27,8 +28,7 @@ class FavoritosViewModel(app: Application) : AndroidViewModel(app) {
 
     fun alternar(favorito: FavoritoEntity) {
         viewModelScope.launch {
-            if (favorito.titulo in titulosFavoritos.value) repo.quitar(favorito.titulo)
-            else repo.agregar(favorito)
+            repo.alternar(favorito)
         }
     }
 

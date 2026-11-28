@@ -1,32 +1,31 @@
-
 package com.example.proyectomartini.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
+import com.example.proyectomartini.ui.theme.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.proyectomartini.ui.theme.*
+import com.example.proyectomartini.data.remote.PerfilRemoto
+import com.example.proyectomartini.ui.theme.NieveBrillante
+import com.example.proyectomartini.utils.PerfilCompleto
 import com.example.proyectomartini.viewmodel.RegisterViewModel
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.ui.Alignment
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 @Composable
 fun RegisterScreen(
@@ -34,357 +33,125 @@ fun RegisterScreen(
     onLoginClick: () -> Unit = {},
     registerViewModel: RegisterViewModel = viewModel()
 ) {
-
     val state by registerViewModel.uiState.collectAsState()
+    val perfil = state.perfil
+    val scroll = rememberScrollState()
+    val volver = {
+        if (!state.cargando) {
+            if (state.paso > 0 && !state.terminado) registerViewModel.volver() else onBackClick()
+        }
+    }
+    BackHandler(onBack = volver)
+    LaunchedEffect(state.paso, state.terminado) { scroll.scrollTo(0) }
+    fun editar(cambio: (PerfilRemoto) -> PerfilRemoto) =
+        registerViewModel.modificar { it.copy(perfil = cambio(it.perfil)) }
 
+    Box(Modifier.fillMaxSize().background(Marfil).imePadding(), contentAlignment = Alignment.TopCenter) {
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(NieveBrillante)
-            .verticalScroll(rememberScrollState())
+        Modifier.widthIn(max = 510.dp).fillMaxWidth().fillMaxHeight().verticalScroll(scroll).padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(VerdePino)
-                .padding(16.dp)
-        ) {
-
-            IconButton(
-                onClick = onBackClick
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                    contentDescription = "Volver",
-                    tint = Blanco
-                )
+        Box(Modifier.fillMaxWidth()) {
+            PortadaAcceso(compacta = true)
+            AccionCircular(Icons.Default.ArrowBack, "Volver", volver, Modifier.align(Alignment.CenterStart),
+                fondo = Papel, tinta = VerdePino)
+        }
+        Text("Crear una cuenta", Modifier.fillMaxWidth(), style = MaterialTheme.typography.headlineMedium,
+            color = VerdePino, textAlign = TextAlign.Center, fontWeight = FontWeight.ExtraBold)
+        Text("Únete a la comunidad Master Martini.", Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+        if (state.terminado) {
+            Text("Tu cuenta está lista. Inicia sesión para acceder a tus recomendaciones.")
+            Button(onClick = onLoginClick, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+                Text("Ir a iniciar sesión")
             }
-
-            Column {
-
-                Text(
-                    text = "Crear cuenta",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Blanco
-                )
-
-                Text(
-                    text = "Únete a Master Martini",
-                    color = Blanco.copy(alpha = 0.8f)
-                )
+            return@Column
+        }
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.SpaceEvenly) {
+            listOf("Tus datos", "Intereses").forEachIndexed { indice, nombre ->
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
+                    Box(Modifier.size(38.dp).background(if (indice <= state.paso) VerdePino else LineaCrema, CircleShape),
+                        contentAlignment = Alignment.Center) {
+                        if (indice < state.paso) Icon(Icons.Default.Check, "Etapa completada", tint = Blanco)
+                        else Text("${indice + 1}", color = if (indice == state.paso) Blanco else VerdePino, fontWeight = FontWeight.Bold)
+                    }
+                    Text(nombre, style = MaterialTheme.typography.labelLarge, fontWeight = if (indice == state.paso) FontWeight.Bold else FontWeight.Medium)
+                }
             }
         }
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
-        ) {
-
-            Text(
-                text = "Tus datos",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = VerdePino
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Campo de nombre completo
-            OutlinedTextField(
-                value = state.nombre,
-                onValueChange = registerViewModel::onNombreChange,
-                label = {
-                    Text("Nombre completo")
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = null
-                    )
-                },
-                isError = state.nombreError != null,
-                supportingText = {
-                    state.nombreError?.let {
-                        Text(
-                            text = it,
-                            color = RojoCaoba
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp)
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Campo de correo electrónico
-            OutlinedTextField(
-                value = state.correo,
-                onValueChange = registerViewModel::onCorreoChange,
-                label = {
-                    Text("Correo electrónico")
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Email,
-                        contentDescription = null
-                    )
-                },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Email
-                ),
-                isError = state.correoError != null,
-                supportingText = {
-                    state.correoError?.let {
-                        Text(
-                            text = it,
-                            color = RojoCaoba
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp)
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Campo de teléfono
-            OutlinedTextField(
-                value = state.telefono,
-                onValueChange = registerViewModel::onTelefonoChange,
-                label = {
-                    Text("Teléfono")
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Phone,
-                        contentDescription = null
-                    )
-                },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Phone
-                ),
-                isError = state.telefonoError != null,
-                supportingText = {
-                    state.telefonoError?.let {
-                        Text(
-                            text = it,
-                            color = RojoCaoba
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp)
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Campo de tipo de negocio
-            OutlinedTextField(
-                value = state.tipoNegocio,
-                onValueChange = registerViewModel::onTipoNegocioChange,
-                label = {
-                    Text("Tipo de negocio")
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Store,
-                        contentDescription = null
-                    )
-                },
-                placeholder = {
-                    Text("Ej: Pastelería")
-                },
-                isError = state.tipoNegocioError != null,
-                supportingText = {
-                    state.tipoNegocioError?.let {
-                        Text(
-                            text = it,
-                            color = RojoCaoba
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp)
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Campo de contraseña
-            OutlinedTextField(
-                value = state.password,
-                onValueChange = registerViewModel::onPasswordChange,
-                label = {
-                    Text("Contraseña")
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Lock,
-                        contentDescription = null
-                    )
-                },
-                visualTransformation =
-                    PasswordVisualTransformation(),
-                isError = state.passwordError != null,
-                supportingText = {
-                    state.passwordError?.let {
-                        Text(
-                            text = it,
-                            color = RojoCaoba
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp)
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Campo de confirmación de contraseña
-            OutlinedTextField(
-                value = state.confirmarPassword,
-                onValueChange =
-                    registerViewModel::onConfirmarPasswordChange,
-                label = {
-                    Text("Confirmar contraseña")
-                },
-                leadingIcon = {
-                    Icon(
-                        Icons.Default.Lock,
-                        contentDescription = null
-                    )
-                },
-                visualTransformation =
-                    PasswordVisualTransformation(),
-                isError = state.confirmarPasswordError != null,
-                supportingText = {
-                    state.confirmarPasswordError?.let {
-                        Text(
-                            text = it,
-                            color = RojoCaoba
-                        )
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(14.dp)
-            )
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Botón de registro
-            Button(
-                onClick = {
-                    registerViewModel.registrar()
-                },
-                enabled = !state.cargando,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(55.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = BronceDorado
-                )
-            ) {
-
-                Text(
-                    text = if (state.cargando)
-                        "Creando cuenta..."
-                    else
-                        "Crear cuenta",
-                    fontWeight = FontWeight.Bold
-                )
+        when (state.paso) {
+            0 -> {
+                Text("Tus datos", style = MaterialTheme.typography.titleLarge)
+                CampoRegistro("Nombre completo", perfil.nombre, state.errores["nombre"], limite = 200) { value -> editar { it.copy(nombre = value) } }
+                CampoRegistro("Correo electrónico", perfil.correo, state.errores["correo"], KeyboardType.Email, 254) { value -> editar { it.copy(correo = value) } }
+                CampoRegistro("Contraseña", state.password, state.errores["password"], KeyboardType.Password, 72) { value -> registerViewModel.modificar { it.copy(password = value) } }
+                CampoRegistro("Confirmar contraseña", state.confirmacion, state.errores["confirmacion"], KeyboardType.Password, 72) { value -> registerViewModel.modificar { it.copy(confirmacion = value) } }
             }
-
-            // Mostrar errores devueltos por el servidor
-            state.registroError?.let { mensaje ->
-
-                Spacer(
-                    modifier = Modifier.height(12.dp)
-                )
-
-                Text(
-                    text = mensaje,
-                    color = MaterialTheme.colorScheme.error,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            // Animación de registro exitoso
-            AnimatedVisibility(
-                visible = state.registroExitoso,
-                enter = fadeIn() + expandVertically(),
-                exit = fadeOut() + shrinkVertically()
-            ) {
-
-                Column {
-
-                    Spacer(
-                        modifier = Modifier.height(16.dp)
-                    )
-
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(
-                            containerColor = VerdeBosque.copy(
-                                alpha = 0.12f
-                            )
-                        ),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-
-                            Icon(
-                                imageVector = Icons.Default.CheckCircle,
-                                contentDescription = "Registro exitoso",
-                                tint = VerdeBosque
-                            )
-
-                            Spacer(
-                                modifier = Modifier.width(10.dp)
-                            )
-
-                            Text(
-                                text = "¡Registro completado correctamente!",
-                                color = VerdeBosque,
-                                fontWeight = FontWeight.Bold
-                            )
+            1 -> {
+                Text("¿Qué te interesa aprender?", style = MaterialTheme.typography.titleLarge)
+                Text("Elige los temas que te interesan. También puedes agregarlos luego desde tu perfil.")
+                val seleccion = PerfilCompleto.intereses(perfil.intereses)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    PerfilCompleto.catalogo.chunked(if (LocalDensity.current.fontScale > 1.15f) 1 else 2).forEach { fila ->
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            fila.forEach { opcion ->
+                                FilterChip(
+                                    selected = opcion in seleccion,
+                                    onClick = {
+                                        val nuevos = if (opcion in seleccion) seleccion - opcion else seleccion + opcion
+                                        editar { it.copy(intereses = nuevos.joinToString(", ")) }
+                                    },
+                                    modifier = Modifier.weight(1f).heightIn(min = 48.dp),
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = VerdePino, selectedLabelColor = Blanco,
+                                        selectedLeadingIconColor = Blanco),
+                                    leadingIcon = {
+                                        val icono = when {
+                                            opcion in seleccion -> Icons.Default.Check
+                                            opcion == "Heladería" -> Icons.Default.Icecream
+                                            opcion == "Pastelería" -> Icons.Default.Cake
+                                            opcion in setOf("Panadería", "Bollería", "Horneo") -> Icons.Default.BakeryDining
+                                            else -> Icons.Default.Restaurant
+                                        }
+                                        Icon(icono, null, Modifier.size(18.dp))
+                                    },
+                                    label = { Text(opcion) }
+                                )
+                            }
+                            if (fila.size == 1 && LocalDensity.current.fontScale <= 1.15f) Spacer(Modifier.weight(1f))
                         }
-                    }
-
-                    Spacer(
-                        modifier = Modifier.height(12.dp)
-                    )
-
-                    // Regresar al inicio de sesión
-                    Button(
-                        onClick = onLoginClick,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(16.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = VerdePino
-                        )
-                    ) {
-
-                        Text(
-                            text = "Ir a iniciar sesión",
-                            fontWeight = FontWeight.Bold
-                        )
                     }
                 }
             }
-
-            Spacer(
-                modifier = Modifier.height(30.dp)
-            )
+        }
+        state.mensaje?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        Button(
+            onClick = registerViewModel::continuar,
+            enabled = !state.cargando,
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
+        ) {
+            Text(if (state.cargando) "Creando cuenta…" else if (state.paso == 1) "Crear cuenta" else "Continuar")
+        }
+        if (state.paso == 1) TextButton(onClick = registerViewModel::omitirIntereses,
+            enabled = !state.cargando, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+            Text("Omitir intereses y crear cuenta")
         }
     }
+    }
+}
+
+@Composable
+private fun CampoRegistro(
+    titulo: String,
+    valor: String,
+    error: String? = null,
+    teclado: KeyboardType = KeyboardType.Text,
+    limite: Int = 200,
+    editar: (String) -> Unit
+) {
+    val icono = when (teclado) {
+        KeyboardType.Email -> Icons.Default.Email
+        KeyboardType.Password -> Icons.Default.Lock
+        else -> Icons.Default.Person
+    }
+    CampoAcceso(titulo, valor, error, icono, teclado) { if (it.length <= limite) editar(it) }
 }

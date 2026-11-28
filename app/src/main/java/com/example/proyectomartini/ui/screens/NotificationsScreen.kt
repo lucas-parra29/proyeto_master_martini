@@ -7,6 +7,10 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import com.example.proyectomartini.notifications.BandejaMartini
+import com.example.proyectomartini.ui.theme.CremaMartini
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -24,15 +28,18 @@ import androidx.core.content.ContextCompat
 import com.example.proyectomartini.notifications.ReminderReceiver
 import com.example.proyectomartini.notifications.ReminderScheduler
 import com.example.proyectomartini.ui.theme.GrisTexto
-import com.example.proyectomartini.ui.theme.NieveBrillante
 import com.example.proyectomartini.ui.theme.VerdePino
 
 @Composable
 fun NotificationsScreen(
-    onBackClick: () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    onAbrirContenido: (String) -> Unit = {}
 ) {
 
     val context = LocalContext.current
+    val bandeja = remember(context) { BandejaMartini(context.applicationContext) }
+    val revision by bandeja.cambios.collectAsState()
+    val avisos = remember(bandeja, revision) { bandeja.leer() }
 
     var mensajeEstado by remember {
         mutableStateOf<String?>(null)
@@ -135,7 +142,8 @@ fun NotificationsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(NieveBrillante)
+            .background(Marfil)
+            .verticalScroll(rememberScrollState())
             .padding(20.dp)
     ) {
 
@@ -190,6 +198,25 @@ fun NotificationsScreen(
                 .padding(top = 6.dp)
         )
 
+        Spacer(Modifier.height(14.dp))
+        SeccionMartini("Mis notificaciones") {
+            if (avisos.isEmpty()) Text("Aquí aparecerán los temporizadores finalizados y los recordatorios.")
+            avisos.forEach { aviso ->
+                Card(colors = CardDefaults.cardColors(containerColor = if (aviso.leido) Papel else CremaMartini)) {
+                    Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text(if (aviso.leido) "Leída" else "Pendiente", style = MaterialTheme.typography.labelMedium, color = VerdePino)
+                        Text(aviso.titulo, style = MaterialTheme.typography.titleMedium, color = VerdePino)
+                        Text(aviso.mensaje)
+                        TextButton(onClick = {
+                            bandeja.marcarLeido(aviso.id)
+                            onAbrirContenido(aviso.destino)
+                        }, modifier = Modifier.heightIn(min = 48.dp)) {
+                            Text(if (aviso.destino.startsWith("receta/")) "Abrir receta" else "Abrir Academia")
+                        }
+                    }
+                }
+            }
+        }
         Spacer(
             Modifier.height(28.dp)
         )

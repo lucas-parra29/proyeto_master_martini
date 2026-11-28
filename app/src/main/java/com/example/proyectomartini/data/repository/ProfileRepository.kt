@@ -13,17 +13,21 @@ data class UserProfile(
     val nombreEmpresa: String = "",
     val direccionEmpresa: String = "",
     val cargoEmpresa: String = "",
-    val descripcionEmpresa: String = ""
+    val descripcionEmpresa: String = "",
+    val tamanoEmpresa: String = "",
+    val rutEmpresa: String = "",
+    val declaraEmpresa: Boolean? = null
 )
 
 class ProfileRepository(context: Context) {
-
-    private val preferences = context.getSharedPreferences(
-        "perfil_master_martini",
+    private val app = context.applicationContext
+    private val preferences get() = app.getSharedPreferences(
+        "perfil_master_martini_" + com.example.proyectomartini.utils.IdentidadLocal.clave(AuthRepository(app).correoSesion()),
         Context.MODE_PRIVATE
     )
 
     fun obtenerPerfil(): UserProfile {
+        val declara = preferences.getString("declaraEmpresa", null)?.toBooleanStrictOrNull()
         return UserProfile(
             nombre = preferences.getString("nombre", "") ?: "",
             correo = preferences.getString("correo", "") ?: "",
@@ -34,7 +38,10 @@ class ProfileRepository(context: Context) {
             nombreEmpresa = preferences.getString("nombreEmpresa", "") ?: "",
             direccionEmpresa = preferences.getString("direccionEmpresa", "") ?: "",
             cargoEmpresa = preferences.getString("cargoEmpresa", "") ?: "",
-            descripcionEmpresa = preferences.getString("descripcionEmpresa", "") ?: ""
+            descripcionEmpresa = preferences.getString("descripcionEmpresa", "") ?: "",
+            tamanoEmpresa = preferences.getString("tamanoEmpresa", "").orEmpty(),
+            rutEmpresa = preferences.getString("rutEmpresa", "").orEmpty(),
+            declaraEmpresa = declara
         )
     }
 
@@ -50,6 +57,9 @@ class ProfileRepository(context: Context) {
             .putString("direccionEmpresa", perfil.direccionEmpresa)
             .putString("cargoEmpresa", perfil.cargoEmpresa)
             .putString("descripcionEmpresa", perfil.descripcionEmpresa)
+            .putString("tamanoEmpresa", perfil.tamanoEmpresa)
+            .putString("rutEmpresa", perfil.rutEmpresa)
+            .apply { perfil.declaraEmpresa?.let { putString("declaraEmpresa", it.toString()) } }
             .apply()
     }
 }

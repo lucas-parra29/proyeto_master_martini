@@ -117,15 +117,12 @@ class LoginViewModel(
                         val perfil =
                             profileRepository.obtenerPerfil()
 
-                        // Actualizar perfil si pertenece a otra cuenta
-                        if (perfil.correo != resultado.correo) {
-
-                            profileRepository.guardarPerfil(
-                                UserProfile(
-                                    nombre = resultado.nombre,
-                                    correo = resultado.correo
-                                )
-                            )
+                        try {
+                            val remoto = com.example.proyectomartini.data.repository.ServiciosRepository(getApplication<Application>()).api.perfil()
+                            profileRepository.guardarPerfil(UserProfile(remoto.nombre.ifBlank { resultado.nombre }, remoto.correo, remoto.telefono, remoto.tipoNegocio, remoto.intereses, if(perfil.correo==remoto.correo) perfil.foto else "", remoto.nombreEmpresa, remoto.direccionEmpresa, remoto.cargoEmpresa, remoto.descripcionEmpresa, remoto.tamanoEmpresa.orEmpty(), remoto.rutEmpresa.orEmpty()))
+                        } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+                        catch (e: Exception) {
+                            if (perfil.correo != resultado.correo) profileRepository.guardarPerfil(UserProfile(nombre=resultado.nombre,correo=resultado.correo))
                         }
 
                         _uiState.update {

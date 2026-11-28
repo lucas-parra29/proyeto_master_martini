@@ -1,6 +1,10 @@
 
 package com.example.proyectomartini.ui.screens
 
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.runtime.withFrameNanos
+import com.example.proyectomartini.utils.PerfilCompleto
 import android.Manifest
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -43,8 +47,18 @@ private val FondoMartini = Color(0xFFF7F8F5)
 @Composable
 fun EditProfileScreen(
     onBackClick: () -> Unit = {},
+    campoInicial: String? = null,
     editViewModel: EditProfileViewModel = viewModel()
 ) {
+    val destino = remember { BringIntoViewRequester() }
+    LaunchedEffect(campoInicial) {
+        if (campoInicial != null) {
+            withFrameNanos { }
+            destino.bringIntoView()
+        }
+    }
+    fun ancla(campo: PerfilCompleto.Campo) =
+        if (campo.name == campoInicial) Modifier.bringIntoViewRequester(destino) else Modifier
     val estado by editViewModel.uiState.collectAsState()
     val context = LocalContext.current
 
@@ -60,7 +74,7 @@ fun EditProfileScreen(
         try {
             val archivo = File(
                 context.filesDir,
-                "foto_perfil.png"
+                "foto_perfil_${java.util.UUID.randomUUID()}.png"
             )
 
             archivo.outputStream().use { salida ->
@@ -144,6 +158,7 @@ fun EditProfileScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(FondoMartini)
+            .imePadding()
             .verticalScroll(rememberScrollState())
     ) {
         Column(
@@ -246,6 +261,7 @@ fun EditProfileScreen(
 
             CampoPerfil(
                 titulo = "Nombre completo",
+                modifier = ancla(PerfilCompleto.Campo.NOMBRE),
                 valor = estado.nombre,
                 error = estado.nombreError,
                 onValueChange = editViewModel::cambiarNombre
@@ -256,6 +272,7 @@ fun EditProfileScreen(
                 valor = estado.correo,
                 error = estado.correoError,
                 tipoTeclado = KeyboardType.Email,
+                soloLectura = true,
                 onValueChange = editViewModel::cambiarCorreo
             )
 
@@ -271,6 +288,7 @@ fun EditProfileScreen(
 
             Text(
                 text = "Mis intereses",
+                modifier = ancla(PerfilCompleto.Campo.INTERESES),
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = VerdeMartini
@@ -286,16 +304,7 @@ fun EditProfileScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            val opcionesIntereses = listOf(
-                "Chocolatería",
-                "Pastelería de vitrina",
-                "Heladería",
-                "Bollería",
-                "Masas de hoja",
-                "Galletas",
-                "Empanadas",
-                "Productos de horneo"
-            )
+            val opcionesIntereses = PerfilCompleto.catalogo + "Masas de hoja"
 
             val listaIntereses = estado.intereses
                 .split(",")
@@ -336,57 +345,39 @@ fun EditProfileScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Información de la empresa",
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = VerdeMartini
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            Text(
-                text = "Agrega los datos de la empresa a la que perteneces.",
-                fontSize = 14.sp,
-                color = Color.DarkGray
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            CampoPerfil(
-                titulo = "Nombre de la empresa",
-                valor = estado.nombreEmpresa,
-                error = null,
-                onValueChange = editViewModel::cambiarNombreEmpresa
-            )
-
-            CampoPerfil(
-                titulo = "Tipo de negocio",
-                valor = estado.tipoNegocio,
-                error = estado.negocioError,
-                onValueChange = editViewModel::cambiarNegocio
-            )
-
-            CampoPerfil(
-                titulo = "Dirección de la empresa",
-                valor = estado.direccionEmpresa,
-                error = null,
-                onValueChange = editViewModel::cambiarDireccionEmpresa
-            )
-
-            CampoPerfil(
-                titulo = "Cargo en la empresa",
-                valor = estado.cargoEmpresa,
-                error = null,
-                onValueChange = editViewModel::cambiarCargoEmpresa
-            )
-
-            CampoPerfil(
-                titulo = "Descripción de la empresa",
-                valor = estado.descripcionEmpresa,
-                error = null,
-                onValueChange = editViewModel::cambiarDescripcionEmpresa
-            )
+            Column(Modifier.fillMaxWidth().then(ancla(PerfilCompleto.Campo.NEGOCIO)),
+                verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("¿Tienes una empresa o emprendimiento?", style = MaterialTheme.typography.titleLarge, color = VerdeMartini)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilterChip(estado.tieneEmpresa == true, { editViewModel.elegirEmpresa(true) },
+                        { Text("Sí") }, Modifier.weight(1f).heightIn(min = 48.dp))
+                    FilterChip(estado.tieneEmpresa == false, { editViewModel.elegirEmpresa(false) },
+                        { Text("No") }, Modifier.weight(1f).heightIn(min = 48.dp))
+                }
+                if (estado.tieneEmpresa == true) {
+                    CampoPerfil("Nombre de la empresa", estado.nombreEmpresa, estado.empresaError,
+                        editViewModel::cambiarNombreEmpresa, modifier = ancla(PerfilCompleto.Campo.EMPRESA))
+                    var categorias by remember { mutableStateOf(false) }
+                    Box(Modifier.fillMaxWidth()) {
+                        OutlinedButton(onClick = { categorias = true },
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+                            Text(estado.tipoNegocio.ifBlank { "Seleccionar tipo de negocio" })
+                        }
+                        DropdownMenu(expanded = categorias, onDismissRequest = { categorias = false }) {
+                            (PerfilCompleto.catalogo + "Otro").forEach { tipo ->
+                                DropdownMenuItem(text = { Text(tipo) }, onClick = {
+                                    editViewModel.cambiarNegocio(tipo); categorias = false
+                                })
+                            }
+                        }
+                    }
+                    estado.negocioError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                    CampoPerfil("RUT de la empresa (opcional)", estado.rutEmpresa, estado.rutError,
+                        editViewModel::cambiarRutEmpresa)
+                    CampoPerfil("Dirección de la empresa (opcional)", estado.direccionEmpresa, null,
+                        editViewModel::cambiarDireccionEmpresa)
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -394,9 +385,10 @@ fun EditProfileScreen(
                 onClick = {
                     editViewModel.guardarPerfil()
                 },
+                enabled = !estado.cargando,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(52.dp),
+                    .heightIn(min = 52.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = VerdeMartini
                 ),
@@ -409,6 +401,8 @@ fun EditProfileScreen(
                 )
             }
 
+            estado.errorServidor?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            if (estado.cargando) LinearProgressIndicator(Modifier.fillMaxWidth())
             if (estado.guardadoExitoso) {
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -498,13 +492,16 @@ private fun CampoPerfil(
     valor: String,
     error: String?,
     onValueChange: (String) -> Unit,
-    tipoTeclado: KeyboardType = KeyboardType.Text
+    tipoTeclado: KeyboardType = KeyboardType.Text,
+    soloLectura: Boolean = false,
+    modifier: Modifier = Modifier
 ) {
     OutlinedTextField(
         value = valor,
         onValueChange = onValueChange,
+        readOnly = soloLectura,
         label = { Text(titulo) },
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         keyboardOptions = KeyboardOptions(
             keyboardType = tipoTeclado
         ),

@@ -7,7 +7,7 @@
         android:name="android.permission.INTERNET" />
 
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
@@ -20,6 +20,7 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
+            android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize">
 
             <intent-filter>
@@ -29,9 +30,20 @@
 
         </activity>
 
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.constancias"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/constancias_paths" />
+        </provider>
+
         <receiver
             android:name=".notifications.ReminderReceiver"
             android:exported="false" />
+
+        <receiver android:name=".notifications.CocinaAlarmaReceiver" android:exported="false" />
 
     </application>
 

@@ -1,277 +1,142 @@
-
 package com.example.proyectomartini.ui.screens
-
-import android.app.Activity
-import android.content.Context
-import android.content.ContextWrapper
-import android.content.Intent
 import android.net.Uri
-import android.view.View
-import android.view.ViewGroup
-import android.webkit.WebChromeClient
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.widget.Toast
-import androidx.activity.compose.BackHandler
-import androidx.browser.customtabs.CustomTabsIntent
+import android.content.SharedPreferences
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.text.font.FontWeight
+import android.widget.VideoView
+import kotlinx.coroutines.delay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.proyectomartini.data.local.FavoritoEntity
+import com.example.proyectomartini.ui.theme.*
+import com.example.proyectomartini.viewmodel.FavoritosViewModel
 
-private val VerdeVideo = Color(0xFF174D3D)
-
-private fun Context.obtenerActivity(): Activity? {
-    var actual: Context = this
-    while (actual is ContextWrapper) {
-        if (actual is Activity) return actual
-        actual = actual.baseContext
-    }
-    return null
-}
-
-private class MartiniWebChromeClient(
-    private val activity: Activity?,
-    private val onFullscreen: (Boolean) -> Unit
-) : WebChromeClient() {
-
-    private var fullscreenView: View? = null
-    private var fullscreenCallback: CustomViewCallback? = null
-    private var previousSystemUiVisibility = 0
-
-    override fun onShowCustomView(
-        view: View?,
-        callback: CustomViewCallback?
-    ) {
-        if (activity == null || view == null) {
-            callback?.onCustomViewHidden()
-            return
-        }
-
-        if (fullscreenView != null) {
-            callback?.onCustomViewHidden()
-            return
-        }
-
-        val decor = activity.window.decorView as ViewGroup
-        previousSystemUiVisibility = decor.systemUiVisibility
-
-        fullscreenView = view
-        fullscreenCallback = callback
-
-        (view.parent as? ViewGroup)?.removeView(view)
-
-        decor.addView(
-            view,
-            ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-            )
-        )
-
-        view.bringToFront()
-
-        decor.systemUiVisibility =
-            View.SYSTEM_UI_FLAG_FULLSCREEN or
-                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-
-        onFullscreen(true)
-    }
-
-    override fun onHideCustomView() {
-        val view = fullscreenView ?: return
-
-        val decor = activity?.window?.decorView as? ViewGroup
-        decor?.removeView(view)
-        decor?.systemUiVisibility = previousSystemUiVisibility
-
-        fullscreenView = null
-        fullscreenCallback?.onCustomViewHidden()
-        fullscreenCallback = null
-
-        onFullscreen(false)
-    }
-
-    fun cerrarFullscreen() {
-        onHideCustomView()
-    }
-}
-
-@Composable
-fun VideoPlayerScreen(
-    videoId: String,
-    titulo: String,
-    onBackClick: () -> Unit
-) {
+@Composable fun VideoPlayerScreen(videoId: String, titulo: String, onBackClick: () -> Unit,
+    onReceta: (String) -> Unit = {}, onCurso: (String) -> Unit = {}, favoritosViewModel: FavoritosViewModel = viewModel()) {
+    val tutorial = tutorialesMartini.find { it.id == videoId }
     val context = LocalContext.current
-
-    val activity = remember(context) {
-        context.obtenerActivity()
+    val favoritos by favoritosViewModel.titulosFavoritos.collectAsState()
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val fuente = videosOficiales[videoId]
+    val rawId = remember(videoId) {
+        context.resources.getIdentifier("tutorial_" + videoId, "raw", context.packageName)
     }
-
-    val idValido = remember(videoId) {
-        Regex("^[A-Za-z0-9_-]{11}$").matches(videoId)
+    var mostrarDemo by rememberSaveable(videoId) { mutableStateOf(false) }
+    val prefs = remember(context) { preferenciasVideos(context) }
+    val claveDemo = "demo_$videoId"
+    val huboAvance = remember(videoId) {
+        prefs.getInt(claveDemo, 0) > 0 || (fuente != null && prefs.getInt("yt_${fuente.id}", 0) > 0)
     }
-
-    var fullscreen by remember {
-        mutableStateOf(false)
-    }
-
-    val chromeClient = remember(activity) {
-        MartiniWebChromeClient(activity) {
-            fullscreen = it
-        }
-    }
-
-    BackHandler(enabled = fullscreen) {
-        chromeClient.cerrarFullscreen()
-    }
-
-    fun abrirEnYouTube() {
-        if (!idValido) return
-
-        val url = Uri.parse(
-            "https://www.youtube.com/watch?v=$videoId"
-        )
-
-        try {
-            val customTab = CustomTabsIntent.Builder()
-                .setShowTitle(true)
-                .build()
-
-            customTab.launchUrl(context, url)
-        } catch (_: Exception) {
-            try {
-                context.startActivity(
-                    Intent(Intent.ACTION_VIEW, url)
-                )
-            } catch (_: Exception) {
-                Toast.makeText(
-                    context,
-                    "No se pudo abrir YouTube",
-                    Toast.LENGTH_SHORT
-                ).show()
+    var recarga by remember(videoId) { mutableIntStateOf(0) }
+    var player by remember(videoId) { mutableStateOf<VideoView?>(null) }
+    var listo by remember(videoId) { mutableStateOf(false) }
+    var error by remember(videoId) { mutableStateOf(false) }
+    var reproduciendo by remember(videoId) { mutableStateOf(false) }
+    var duracion by remember(videoId) { mutableIntStateOf(0) }
+    var posicion by remember(videoId) { mutableIntStateOf(0) }
+    LaunchedEffect(player,listo) {
+        while(listo && player != null) {
+            posicion=player?.currentPosition?.coerceAtLeast(0) ?: 0
+            reproduciendo=player?.isPlaying == true
+            if (reproduciendo && posicion > 0) {
+                prefs.edit().putInt(claveDemo, posicion).apply()
+                if (posicion >= 10_000) marcarVideoVisto(prefs, videoId)
             }
+            delay(700)
         }
     }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF7F8F5))
-            .verticalScroll(rememberScrollState())
-    ) {
-
-        TextButton(onClick = onBackClick) {
-            Text(
-                "← Volver a Explorar",
-                color = VerdeVideo
-            )
+    DisposableEffect(lifecycle,player) {
+        val observer=LifecycleEventObserver { _, evento -> if(evento == Lifecycle.Event.ON_PAUSE) { player?.pause(); reproduciendo=false } }
+        lifecycle.addObserver(observer)
+        onDispose { lifecycle.removeObserver(observer) }
+    }
+    Column(Modifier.fillMaxSize().background(Marfil).verticalScroll(rememberScrollState())) {
+        Box(Modifier.fillMaxWidth().height(124.dp).background(VerdePino)) {
+            tutorial?.let { PortadaMartini(it.categoria, Modifier.fillMaxHeight().width(160.dp).align(androidx.compose.ui.Alignment.CenterEnd)) }
+            AccionCircular(Icons.Default.ArrowBack, "Volver", onBackClick, Modifier.padding(6.dp))
+            Text("Videos técnicos", Modifier.align(androidx.compose.ui.Alignment.BottomStart).padding(14.dp),
+                color = Blanco, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
         }
-
-        Text(
-            text = titulo,
-            fontSize = 23.sp,
-            fontWeight = FontWeight.Bold,
-            color = VerdeVideo,
-            modifier = Modifier.padding(16.dp)
-        )
-
-        if (idValido) {
-
-            key(videoId) {
-                AndroidView(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(16f / 9f),
-
-                    factory = { ctx ->
-                        WebView(ctx).apply {
-                            setLayerType(View.LAYER_TYPE_HARDWARE, null)
-                            setBackgroundColor(
-                                android.graphics.Color.BLACK
-                            )
-
-                            settings.javaScriptEnabled = true
-                            settings.domStorageEnabled = true
-                            settings.mediaPlaybackRequiresUserGesture = true
-
-                            webViewClient = WebViewClient()
-                            webChromeClient = chromeClient
-
-                            val videoUrl =
-                                "https://www.youtube.com/embed/$videoId" +
-                                        "?playsinline=1&controls=1&fs=1"
-
-                            // Identificar Master Martini ante YouTube
-                            loadUrl(
-                                videoUrl,
-                                mapOf(
-                                    "Referer" to
-                                            "https://${ctx.packageName}/"
-                                )
-                            )
-                        }
-                    },
-
-                    onRelease = { webView ->
-                        chromeClient.cerrarFullscreen()
-                        webView.stopLoading()
-                        webView.loadUrl("about:blank")
-                        webView.destroy()
-                    }
-                )
+        Column(Modifier.fillMaxWidth().padding(15.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+            if(tutorial == null) { Text("Este contenido antiguo ya no está disponible en el nuevo catálogo."); Button(onClick=onBackClick) { Text("Volver") }; return@Column }
+            Text(tutorial.titulo, style = MaterialTheme.typography.headlineMedium, color = VerdePino, fontWeight = FontWeight.Bold)
+            IndicadorEditorial(Icons.Default.BarChart, "Básico")
+            if (huboAvance) EtiquetaMartini("Continúa donde lo dejaste")
+            if (fuente != null && !mostrarDemo) {
+                EtiquetaMartini("Video publicado por Master Martini Chile · ${fuente.duracion}")
+                Text(fuente.titulo, style = MaterialTheme.typography.titleMedium)
+                ReproductorOficial(fuente, if (rawId != 0) ({ mostrarDemo = true }) else null)
+            } else {
+                EtiquetaMartini("Cápsula académica ilustrada · 24 segundos")
+                if (fuente != null) {
+                    OutlinedButton(onClick = { mostrarDemo = false },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Volver al video oficial") }
+                }
             }
-
-            Spacer(Modifier.height(18.dp))
-
-            Text(
-                text = "Reproduce el video directamente aquí o ábrelo en YouTube.",
-                color = Color.DarkGray,
-                fontSize = 14.sp,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-
-            Spacer(Modifier.height(18.dp))
-
-            Button(
-                onClick = { abrirEnYouTube() },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = VerdeVideo
-                )
-            ) {
-                Text("▶ Abrir en YouTube")
+            Text(tutorial.objetivo,style=MaterialTheme.typography.bodyLarge,color=GrisTexto)
+            if(rawId != 0 && (fuente == null || mostrarDemo)) {
+                key(videoId, recarga) {
+                    AndroidView(modifier=Modifier.fillMaxWidth().aspectRatio(16f/9f).clip(RoundedCornerShape(15.dp)).background(VerdePino),factory={ ctx -> VideoView(ctx).apply {
+                        player=this
+                        setOnPreparedListener { duracion=duration.coerceAtLeast(0); listo=true; seekTo(prefs.getInt(claveDemo, 1).coerceIn(0, duracion)) }
+                        setOnCompletionListener { reproduciendo=false; prefs.edit().remove(claveDemo).apply() }
+                        setOnErrorListener { _,_,_ -> error=true; reproduciendo=false; true }
+                        setVideoURI(Uri.parse("android.resource://"+ctx.packageName+"/"+rawId))
+                    } },onRelease={ view -> view.stopPlayback(); if(player===view) player=null })
+                }
+                if (error) {
+                    Text("No se pudo reproducir esta cápsula.", color = MaterialTheme.colorScheme.error)
+                    OutlinedButton(onClick = { error = false; listo = false; recarga++ },
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text("Reintentar cápsula") }
+                }
+                else if(!listo) LinearProgressIndicator(Modifier.fillMaxWidth())
+                if(listo && !error && duracion>0) {
+                    Slider(value=posicion.toFloat().coerceIn(0f,duracion.toFloat()),onValueChange={ posicion=it.toInt(); player?.seekTo(posicion) },valueRange=0f..duracion.toFloat(),modifier=Modifier.fillMaxWidth())
+                    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) { Text(formatoTiempo(posicion)); Text(formatoTiempo(duracion)) }
+                }
+                Button(onClick={ if(reproduciendo) player?.pause() else player?.start(); reproduciendo=!reproduciendo }, enabled=listo&&!error,modifier=Modifier.fillMaxWidth().heightIn(min=56.dp)) { Text(if(reproduciendo) "Pausar video" else "Reproducir video") }
+                OutlinedButton(onClick={ player?.seekTo(0); player?.start(); reproduciendo=true },enabled=listo&&!error,modifier=Modifier.fillMaxWidth().heightIn(min=48.dp)) { Text("Reproducir desde el inicio") }
             }
-
-            Spacer(Modifier.height(14.dp))
-
-            Text(
-                text = "Si YouTube no permite reproducir el video dentro de la aplicación, utiliza el botón para abrirlo externamente.",
-                fontSize = 13.sp,
-                color = Color.Gray,
-                modifier = Modifier.padding(horizontal = 16.dp)
-            )
-        } else {
-            Text(
-                text = "El video seleccionado no es válido.",
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.padding(16.dp)
-            )
+            OutlinedButton(onClick={ favoritosViewModel.alternar(FavoritoEntity(tutorial.titulo,"VIDEO",fuente?.duracion ?: "24 segundos","Básico")) },modifier=Modifier.fillMaxWidth().heightIn(min=52.dp)) { Text(if(tutorial.titulo in favoritos) "Quitar de favoritos" else "Guardar video") }
+            SeccionMartini("Producto relacionado") {
+                CatalogoInsumoFoto(tutorial.categoria, Modifier.fillMaxWidth().height(94.dp))
+                Text(tutorial.producto, style = MaterialTheme.typography.bodyLarge, color = VerdePino)
+            }
+            val recetas = recetasMartini.filter { it.categoria == tutorial.categoria }.take(2)
+            val curso = cursosMartini.firstOrNull { it.categoria == tutorial.categoria }
+            if (recetas.isNotEmpty() || curso != null) SeccionMartini("Sigue aprendiendo") {
+                recetas.forEach { r ->
+                    OutlinedButton(onClick = { onReceta(r.id) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(r.titulo) }
+                }
+                curso?.let {
+                    OutlinedButton(onClick = { onCurso(it.id) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(it.titulo) }
+                }
+            }
+            SeccionMartini("Guía de la técnica") { tutorial.pasos.forEachIndexed { i,paso -> Text("${i+1}. $paso",style=MaterialTheme.typography.bodyLarge,color=GrisTexto) } }
+            if (fuente == null || mostrarDemo) Text("Material audiovisual ilustrado de demostración académica; no es una grabación ni una clase oficial de Master Martini. Consulta la ficha técnica de cada producto.",style=MaterialTheme.typography.bodySmall,color=GrisTexto)
         }
     }
+}
+
+private fun formatoTiempo(ms:Int):String { val segundos=ms.coerceAtLeast(0)/1000; return "%d:%02d".format(segundos/60,segundos%60) }
+
+internal fun marcarVideoVisto(prefs: SharedPreferences, id: String) {
+    val vistos = prefs.getStringSet("videos_vistos", emptySet()).orEmpty()
+    if (id !in vistos) prefs.edit().putStringSet("videos_vistos", vistos + id).apply()
 }

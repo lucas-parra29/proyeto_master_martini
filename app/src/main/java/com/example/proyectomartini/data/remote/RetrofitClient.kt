@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit
 
 object RetrofitClient {
 
-    private const val BASE_URL = "https://54.196.190.80/"
+    val BASE_URL = com.example.proyectomartini.BuildConfig.MARTINI_API_URL
 
     fun crear(obtenerToken: () -> String?): Retrofit {
         val cliente = OkHttpClient.Builder()

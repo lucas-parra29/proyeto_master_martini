@@ -7,6 +7,7 @@ import com.example.proyectomartini.data.remote.LoginRequest
 import com.example.proyectomartini.data.remote.RegistroRequest
 import com.example.proyectomartini.data.remote.RetrofitClient
 import retrofit2.HttpException
+import com.example.proyectomartini.data.remote.PerfilRemoto
 import java.io.IOException
 
 sealed interface ResultadoAuth {
@@ -28,10 +29,11 @@ class AuthRepository(context: Context) {
     suspend fun registrar(
         nombre: String,
         correo: String,
-        password: String
+        password: String,
+        perfil: PerfilRemoto? = null
     ): ResultadoAuth = llamar {
         api.registrar(
-            RegistroRequest(nombre.trim(), correo.trim().lowercase(), password)
+            RegistroRequest(nombre.trim(), correo.trim().lowercase(), password, perfil)
         )
     }
 
@@ -44,7 +46,19 @@ class AuthRepository(context: Context) {
         )
     }
 
+    fun nombreSesion(): String = preferences.getString("nombre", "").orEmpty()
+
     fun obtenerToken(): String? = preferences.getString("token", null)
+
+    internal fun tokenDeCuenta(cuenta: String): String? {
+        val sesion = preferences.all
+        val correo = (sesion["correo"] as? String)?.trim()?.lowercase()
+        return (sesion["token"] as? String).takeIf { correo == cuenta }
+    }
+
+    fun correoSesion(): String = preferences.getString("correo", "")?.trim()?.lowercase().orEmpty()
+
+    fun rol(): String = preferences.getString("rol", "CLIENTE") ?: "CLIENTE"
 
     fun haySesion(): Boolean = obtenerToken() != null
 
@@ -60,6 +74,7 @@ class AuthRepository(context: Context) {
                 .putString("token", respuesta.token)
                 .putString("nombre", respuesta.nombre)
                 .putString("correo", respuesta.correo)
+                .putString("rol", respuesta.rol)
                 .apply()
 
             ResultadoAuth.Exito(respuesta.nombre, respuesta.correo)

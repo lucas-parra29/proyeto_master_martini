@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.ProyectoMartini" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.ProyectoMartini.Base" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@drawable/martini_splash</item>
+    </style>
+    <style name="Theme.ProyectoMartini" parent="Theme.ProyectoMartini.Base" />
 </resources>

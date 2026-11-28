@@ -37,8 +37,10 @@ object ValidadorFormulario {
             telefono.isBlank() ->
                 "Ingresa tu teléfono"
 
-            telefono.length < 8 ->
+            telefono.trim().replace(" ", "").length < 8 ->
                 "El teléfono es demasiado corto"
+
+            !Regex("""^\+?[0-9]{8,15}$""").matches(telefono.trim().replace(" ", "")) -> "Ingresa un teléfono válido"
 
             else -> null
         }

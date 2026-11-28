@@ -1,6 +1,18 @@
 package com.example.proyectomartini.ui.screens
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import com.example.proyectomartini.R
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,9 +24,17 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.PlayArrow
+import com.example.proyectomartini.data.repository.AuthRepository
+import com.example.proyectomartini.utils.IdentidadLocal
+import com.example.proyectomartini.utils.AcademiaMartini
+import android.content.Context
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.proyectomartini.ui.theme.*
@@ -33,10 +53,10 @@ data class CursoMartini(
     val lecciones: List<LeccionMartini>
 )
 
-private val cursosMartini = listOf(
+private val cursosBase = listOf(
     CursoMartini(
         id = "curso-pasteleria",
-        titulo = "Fundamentos de Pastelería",
+        titulo = "Pastelería de vitrina",
         categoria = "Pastelería",
         nivel = "Básico",
         descripcion = "Aprende las técnicas esenciales de elaboración de postres.",
@@ -57,7 +77,7 @@ private val cursosMartini = listOf(
     ),
     CursoMartini(
         id = "curso-chocolate",
-        titulo = "Introducción a la Chocolatería",
+        titulo = "Chocolatería con Ariba",
         categoria = "Chocolatería",
         nivel = "Intermedio",
         descripcion = "Descubre técnicas básicas para trabajar con chocolate.",
@@ -99,228 +119,249 @@ private val cursosMartini = listOf(
     )
 )
 
-@Composable
-fun CoursesScreen(
-    onBackClick: () -> Unit
-) {
-    var cursoSeleccionado by remember {
-        mutableStateOf<CursoMartini?>(null)
-    }
 
-    var leccionSeleccionada by remember {
-        mutableStateOf<LeccionMartini?>(null)
+internal val cursosMartini = cursosBase + tutorialesMartini.filter { it.categoria !in cursosBase.map { c -> c.categoria } }.distinctBy { it.categoria }.map { t ->
+    CursoMartini("curso-${t.id}", "Curso: ${t.titulo}", t.categoria, "Básico", t.objetivo + " con orientación para emprendedores.", listOf(
+        LeccionMartini("1. Organiza tus insumos", "Producto de referencia: ${t.producto}. Consulta la ficha técnica, pesa los ingredientes y prepara una estación limpia. ${t.pasos[0]}"),
+        LeccionMartini("2. Aplica la técnica", t.pasos[1] + " Registra las cantidades y observa el resultado antes de producir un lote grande."),
+        LeccionMartini("3. Control de calidad", t.pasos[2] + " Evalúa textura, presentación, rendimiento y costo por porción.")
+    ))
+}
+
+internal fun CursoMartini.tiempoLectura() = lecciones.sumOf { leccion ->
+    ((leccion.descripcion.trim().split(Regex("\\s+")).size + 179) / 180).coerceAtLeast(1)
+}
+
+@Composable
+internal fun FotoCurso(curso: CursoMartini, modifier: Modifier) {
+    FotoEditorial("editorial_" + curso.id.replace('-', '_'), portadaCategoria(curso.categoria),
+        modifier, "Imagen ilustrativa de ${curso.titulo}")
+}
+
+@Composable
+fun CoursesScreen(onBackClick: () -> Unit, onVideoClick: (String, String) -> Unit = { _, _ -> },
+    cursoInicial: String? = null, continuarAlAbrir: Boolean = false, constanciaInicial: Boolean = false,
+    favoritosViewModel: com.example.proyectomartini.viewmodel.FavoritosViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+) {
+    val context = LocalContext.current
+    val aprendizaje = remember(context) { com.example.proyectomartini.data.repository.AprendizajeRepository(context) }
+    var completadas by remember(aprendizaje) { mutableStateOf(aprendizaje.leer()) }
+    LaunchedEffect(aprendizaje, completadas) {
+        try { completadas = aprendizaje.sincronizar() }
+        catch (_: java.io.IOException) { /* Se conserva el progreso local. */ }
+        catch (_: retrofit2.HttpException) { /* Se conserva el progreso local. */ }
     }
+    val favoritos by favoritosViewModel.titulosFavoritos.collectAsState()
+    var cursoId by rememberSaveable(cursoInicial) { mutableStateOf(cursoInicial) }
+    var indice by rememberSaveable(cursoInicial, continuarAlAbrir) {
+        val curso = cursosMartini.firstOrNull { it.id == cursoInicial }
+        mutableStateOf(if (continuarAlAbrir && curso != null)
+            AcademiaMartini.siguienteLeccion(curso.id, curso.lecciones.size, completadas) else null)
+    }
+    var premio by rememberSaveable(cursoInicial, constanciaInicial) { mutableStateOf(constanciaInicial) }
+    var categoria by rememberSaveable { mutableStateOf("Todos") }
+    var dificultad by rememberSaveable { mutableStateOf("Todos") }
+    var estado by rememberSaveable { mutableStateOf("Todos") }
+    var filtros by rememberSaveable { mutableStateOf(false) }
 
     fun volver() {
         when {
-            leccionSeleccionada != null -> leccionSeleccionada = null
-            cursoSeleccionado != null -> cursoSeleccionado = null
+            premio && constanciaInicial -> onBackClick()
+            premio -> premio = false
+            indice != null -> indice = null
+            cursoId != null && cursoInicial != null -> onBackClick()
+            cursoId != null -> cursoId = null
             else -> onBackClick()
         }
     }
+    BackHandler(onBack = ::volver)
 
-    BackHandler {
-        volver()
+    val curso = cursosMartini.find { it.id == cursoId }
+    val leccion = indice
+    val contadas = curso?.let { AcademiaMartini.contarLecciones(it.id, it.lecciones.size, completadas) } ?: 0
+    val proxima = curso?.let { AcademiaMartini.siguienteLeccion(it.id, it.lecciones.size, completadas) }
+
+    if (curso != null && premio && contadas == curso.lecciones.size) {
+        PremioCurso(curso, onVolver = ::volver, onExplorar = { premio = false; cursoId = null; indice = null },
+            abrirConstancia = constanciaInicial)
+        return
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(NieveBrillante)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(VerdePino)
-                .padding(16.dp)
-        ) {
-            TextButton(onClick = { volver() }) {
-                Icon(
-                    imageVector = Icons.Default.ArrowBack,
-                    contentDescription = null,
-                    tint = Color.White
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = when {
-                        leccionSeleccionada != null -> "Volver al curso"
-                        cursoSeleccionado != null -> "Volver a Cursos"
-                        else -> "Volver a Inicio"
-                    },
-                    color = Color.White
-                )
-            }
-
-            Text(
-                text = leccionSeleccionada?.titulo
-                    ?: cursoSeleccionado?.titulo
-                    ?: "Cursos Master Martini",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.White
-            )
-
-            if (cursoSeleccionado == null) {
-                Text(
-                    "Aprende con nuestras lecciones",
-                    color = Color.White.copy(alpha = 0.85f)
-                )
-            }
-        }
-
-        when {
-            leccionSeleccionada != null -> {
-                val leccion = leccionSeleccionada!!
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(20.dp)
-                ) {
-                    Text(
-                        text = leccion.titulo,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = VerdePino
-                    )
-
-                    Spacer(Modifier.height(18.dp))
-
-                    Text(
-                        text = leccion.descripcion,
-                        fontSize = 16.sp,
-                        lineHeight = 25.sp,
-                        color = GrisTexto
-                    )
-
-                    Spacer(Modifier.height(25.dp))
-
-                    Button(
-                        onClick = {
-                            leccionSeleccionada = null
-                        },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = VerdePino
-                        )
-                    ) {
-                        Text("Volver al curso")
-                    }
-                }
-            }
-
-            cursoSeleccionado != null -> {
-                val curso = cursoSeleccionado!!
-
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    item {
-                        Text(
-                            text = curso.descripcion,
-                            fontSize = 15.sp,
-                            color = GrisTexto
-                        )
-
-                        Spacer(Modifier.height(16.dp))
-
-                        Text(
-                            text = "Lecciones",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = VerdePino
-                        )
-                    }
-
-                    items(curso.lecciones) { leccion ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    leccionSeleccionada = leccion
-                                },
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Blanco
-                            )
-                        ) {
-                            Text(
-                                text = leccion.titulo,
-                                modifier = Modifier.padding(18.dp),
-                                fontWeight = FontWeight.Bold,
-                                color = VerdePino
-                            )
+    key(cursoId, leccion) {
+        LazyColumn(Modifier.fillMaxSize().background(Marfil), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (curso == null) {
+                item {
+                    Box(Modifier.fillMaxWidth().heightIn(min = 164.dp).clip(RoundedCornerShape(bottomStart = 22.dp, bottomEnd = 22.dp))) {
+                        FotoEditorial("editorial_chocolate", R.drawable.foto_ganache, Modifier.matchParentSize())
+                        Box(Modifier.matchParentSize().background(Brush.horizontalGradient(.10f to VerdePino,
+                            .53f to VerdePino, 1f to Color.Transparent)))
+                        Column(Modifier.align(Alignment.BottomStart).padding(16.dp)) {
+                            Icon(GorroChef, null, Modifier.size(34.dp), tint = DoradoMartini)
+                            Text("Academia\nMaster Martini", style = MaterialTheme.typography.headlineMedium,
+                                color = Blanco, fontWeight = FontWeight.ExtraBold)
+                            Text("Cursos prácticos para tu negocio", color = Blanco)
                         }
                     }
                 }
-            }
-
-            else -> {
-                LazyColumn(
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    items(cursosMartini) { curso ->
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    cursoSeleccionado = curso
-                                },
-                            shape = RoundedCornerShape(18.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = Blanco
-                            )
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(18.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.School,
-                                    contentDescription = null,
-                                    tint = VerdePino,
-                                    modifier = Modifier.size(34.dp)
-                                )
-
-                                Spacer(Modifier.width(14.dp))
-
-                                Column {
-                                    Text(
-                                        text = curso.titulo,
-                                        fontSize = 17.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = VerdePino
-                                    )
-
-                                    Spacer(Modifier.height(5.dp))
-
-                                    Text(
-                                        text = "${curso.categoria} • ${curso.nivel}",
-                                        fontSize = 13.sp,
-                                        color = GrisTexto
-                                    )
-
-                                    Spacer(Modifier.height(8.dp))
-
-                                    Text(
-                                        text = curso.descripcion,
-                                        fontSize = 13.sp,
-                                        color = GrisTexto
-                                    )
-
-                                    Spacer(Modifier.height(8.dp))
-
-                                    Text(
-                                        text = "${curso.lecciones.size} lecciones • Ver curso",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = VerdePino
-                                    )
-                                }
+                item {
+                    Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                        (listOf("Todos") + cursosMartini.map { it.categoria }.distinct()).forEach {
+                            PildoraEditorial(it, categoria == it, { categoria = it }, dorada = true)
+                        }
+                    }
+                    TextButton(onClick = { filtros = !filtros }, modifier = Modifier.padding(horizontal = 12.dp)) {
+                        Icon(Icons.Default.Tune, null); Spacer(Modifier.width(6.dp))
+                        Text(if (filtros) "Ocultar filtros" else "Filtrar por nivel o progreso")
+                    }
+                    if (filtros) {
+                        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp)) {
+                            listOf("Todos", "Básico", "Intermedio").forEach { PildoraEditorial(it, dificultad == it, { dificultad = it }) }
+                        }
+                        Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp)) {
+                            listOf("Todos", "Sin iniciar", "En progreso", "Completados").forEach {
+                                PildoraEditorial(it, estado == it, { estado = it })
                             }
                         }
                     }
                 }
+                val visibles = cursosMartini.filter { candidato ->
+                    val hechas = AcademiaMartini.contarLecciones(candidato.id, candidato.lecciones.size, completadas)
+                    val avance = when (hechas) { 0 -> "Sin iniciar"; candidato.lecciones.size -> "Completados"; else -> "En progreso" }
+                    (categoria == "Todos" || candidato.categoria == categoria) &&
+                        (dificultad == "Todos" || candidato.nivel == dificultad) && (estado == "Todos" || estado == avance)
+                }.sortedBy { listOf("Chocolatería", "Pastelería", "Bollería", "Heladería").indexOf(it.categoria).let { posicion -> if (posicion < 0) 4 else posicion } }
+                if (visibles.isEmpty()) item { Text("No hay cursos con estos filtros.", Modifier.padding(16.dp)) }
+                items(visibles, key = { it.id }) { candidato ->
+                    val hechas = AcademiaMartini.contarLecciones(candidato.id, candidato.lecciones.size, completadas)
+                    TarjetaCurso(candidato, hechas) { cursoId = candidato.id; indice = null }
+                }
+            } else if (leccion == null) {
+                val guardado = curso.titulo in favoritos
+                item {
+                    Box(Modifier.fillMaxWidth().heightIn(min = 235.dp).clip(RoundedCornerShape(bottomStart = 26.dp, bottomEnd = 26.dp))) {
+                        FotoCurso(curso, Modifier.matchParentSize())
+                        Box(Modifier.matchParentSize().background(Brush.verticalGradient(
+                            listOf(Color.Black.copy(alpha = .18f), Color.Transparent, Color.Black.copy(alpha = .89f)))))
+                        AccionCircular(Icons.Default.ArrowBack, "Volver", ::volver, Modifier.align(Alignment.TopStart).padding(7.dp))
+                        AccionCircular(if (guardado) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
+                            if (guardado) "Quitar curso de favoritos" else "Guardar curso", {
+                                favoritosViewModel.alternar(com.example.proyectomartini.data.local.FavoritoEntity(
+                                    curso.titulo, "CURSO", "${curso.lecciones.size} lecciones", curso.nivel))
+                            }, Modifier.align(Alignment.TopEnd).padding(7.dp))
+                        Column(Modifier.align(Alignment.BottomStart).padding(top = 63.dp, start = 17.dp, end = 17.dp, bottom = 17.dp)) {
+                            Text(curso.titulo, style = MaterialTheme.typography.headlineMedium,
+                                color = Blanco, fontWeight = FontWeight.ExtraBold)
+                            Text(curso.descripcion, color = Blanco, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                }
+                item {
+                    Column(Modifier.padding(horizontal = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            IndicadorEditorial(Icons.Default.BarChart, curso.nivel, Modifier.weight(1f))
+                            IndicadorEditorial(Icons.Default.MenuBook, "${curso.lecciones.size} lecciones", Modifier.weight(1f))
+                            IndicadorEditorial(Icons.Default.Schedule, "${curso.tiempoLectura()} min lectura", Modifier.weight(1f))
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Column(Modifier.weight(1f)) {
+                                Text("Progreso del curso", style = MaterialTheme.typography.labelLarge)
+                                AvanceEditorial(contadas.toFloat() / curso.lecciones.size, Modifier.fillMaxWidth())
+                            }
+                            Text("${contadas * 100 / curso.lecciones.size}%", color = VerdePino, fontWeight = FontWeight.Bold)
+                        }
+                        Text("Lecciones", style = MaterialTheme.typography.titleLarge, color = VerdePino, fontWeight = FontWeight.Bold)
+                    }
+                }
+                items(curso.lecciones.size) { i ->
+                    val hecha = "${curso.id}:$i" in completadas
+                    val siguiente = proxima == i
+                    val bloqueada = !hecha && !siguiente
+                    Surface(onClick = { indice = i }, enabled = !bloqueada, modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp)
+                        .heightIn(min = 49.dp), shape = CircleShape, color = if (siguiente) OroClaro else Papel,
+                        border = BorderStroke(1.dp, LineaCrema)) {
+                        Row(Modifier.padding(horizontal = 11.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(when { hecha -> Icons.Default.CheckCircle; bloqueada -> Icons.Default.Lock; else -> Icons.Default.PlayCircleOutline },
+                                when { hecha -> "Completada"; bloqueada -> "Bloqueada"; else -> "Próxima lección" },
+                                Modifier.size(21.dp), tint = when { hecha -> VerdeBosque; bloqueada -> GrisTexto; else -> OroOscuro })
+                            Text("${i + 1}. ${curso.lecciones[i].titulo.substringAfter(". ")}", Modifier.weight(1f),
+                                color = if (bloqueada) GrisTexto else VerdePino, fontWeight = FontWeight.SemiBold)
+                            if (!bloqueada) Icon(Icons.Default.PlayArrow, null, Modifier.size(20.dp), tint = VerdePino)
+                        }
+                    }
+                }
+                item {
+                    Column(Modifier.padding(horizontal = 14.dp, vertical = 5.dp)) {
+                        BotonEditorial(if (proxima == null) "Repasar lecciones" else "Continuar lección",
+                            { indice = proxima ?: 0 }, icono = Icons.Default.PlayArrow)
+                        Spacer(Modifier.height(8.dp))
+                        BotonEditorial(if (proxima == null) "Ver recompensa y certificado" else "Obtén tu certificado al completar el curso",
+                            { premio = true }, icono = Icons.Default.WorkspacePremium, dorado = true, habilitado = proxima == null)
+                    }
+                }
+            } else {
+                val contenido = curso.lecciones[leccion]
+                val clave = "${curso.id}:$leccion"
+                item {
+                    CabeceraMartini(curso.titulo, "Lección ${leccion + 1} de ${curso.lecciones.size}", ::volver)
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        FotoCurso(curso, Modifier.fillMaxWidth().height(156.dp).clip(RoundedCornerShape(17.dp)))
+                        SeccionMartini(contenido.titulo) { Text(contenido.descripcion) }
+                        SeccionMartini("Insumo de referencia") {
+                            Text(productoSugerido(curso.categoria), color = VerdePino)
+                        }
+                        tutorialesMartini.firstOrNull { it.categoria == curso.categoria }?.let {
+                            OutlinedButton(onClick = { onVideoClick(it.id, it.titulo) }, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                                Icon(Icons.Default.PlayArrow, null); Text("Ver demostración")
+                            }
+                        }
+                        var evaluar by rememberSaveable(clave) { mutableStateOf(false) }
+                        var superada by rememberSaveable(clave) { mutableStateOf(false) }
+                        val practica = practicasAcademia[curso.id]?.getOrNull(leccion)
+                        if (practica != null) {
+                            PracticaGuiada(clave, practica, superada || clave in completadas) { superada = true }
+                        }
+                        val ultima = clave !in completadas && contadas == curso.lecciones.lastIndex
+                        fun completar() {
+                            completadas = aprendizaje.guardar(setOf(clave))
+                            indice = AcademiaMartini.siguienteLeccion(curso.id, curso.lecciones.size, completadas)
+                            if (ultima) premio = true
+                        }
+                        if (evaluar) EvaluacionCurso(curso.categoria, { evaluar = false }) { respuestas ->
+                            evaluar = false
+                            aprendizaje.guardarEvaluacion(curso.id, respuestas)
+                            completar()
+                        }
+                        BotonEditorial(when { ultima -> "Hacer evaluación final"; clave in completadas -> "Continuar"; else -> "Marcar como completada" },
+                            { if (ultima) evaluar = true else completar() }, icono = Icons.Default.Check,
+                            habilitado = practica == null || superada || clave in completadas)
+                    }
+                }
+            }
+            item { Spacer(Modifier.height(14.dp)) }
+        }
+    }
+}
+
+@Composable
+private fun TarjetaCurso(curso: CursoMartini, completadas: Int, abrir: () -> Unit) {
+    val progreso = completadas.toFloat() / curso.lecciones.size
+    Surface(onClick = abrir, modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+        shape = RoundedCornerShape(17.dp), color = Papel, border = BorderStroke(1.dp, LineaCrema), shadowElevation = 2.dp) {
+        Row(Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(9.dp)) {
+            FotoCurso(curso, Modifier.size(width = 99.dp, height = 91.dp).clip(RoundedCornerShape(13.dp)))
+            Column(Modifier.weight(1f)) {
+                Text(curso.titulo, style = MaterialTheme.typography.titleMedium, color = VerdePino, fontWeight = FontWeight.ExtraBold)
+                IndicadorEditorial(Icons.Default.BarChart, curso.nivel)
+                IndicadorEditorial(Icons.Default.MenuBook, "${curso.lecciones.size} lecciones")
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                    AvanceEditorial(progreso, Modifier.weight(1f))
+                    Text("${(100 * progreso).toInt()}%", style = MaterialTheme.typography.labelMedium, color = VerdePino)
+                }
+            }
+            Box(Modifier.size(27.dp).background(OroOscuro, CircleShape), contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.ChevronRight, "Abrir curso", Modifier.size(19.dp), tint = Blanco)
             }
         }
     }

@@ -11,5 +11,7 @@ class FavoritoRepository(private val dao: FavoritoDao) {
 
     suspend fun agregar(favorito: FavoritoEntity) = dao.insertar(favorito)
 
+    suspend fun alternar(favorito: FavoritoEntity) = dao.alternar(favorito)
+
     suspend fun quitar(titulo: String) = dao.eliminar(titulo)
 }
